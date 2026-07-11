@@ -691,6 +691,129 @@ window.JH_SYS.skill = function(){
     <div class="tiny center mt2">招式可从门派、奇遇、副本习得。</div>`);
 };
 
+// ============================================================
+//  门派系统
+// ============================================================
+const SECTS={
+  shaolin:{nm:'少林', ic:'🏯', tag:'外家刚猛，禅武双修', sys:'gang', skill:'kuangfeng', joinRep:0,
+    desc:'天下武功出少林。以刚猛掌法、罗汉拳法名震江湖。', stat:{def:2,atk:1}},
+  wudang:{nm:'武当', ic:'⛩️', tag:'以柔克刚，太极两仪', sys:'rou', skill:'taiji', joinRep:0,
+    desc:'道法自然，太极生两仪。四两拨千斤，后发先至。', stat:{root:2,def:1}},
+  emei:{nm:'峨眉', ic:'🗻', tag:'身法飘逸，剑走轻灵', sys:'ling', skill:'lingbo', joinRep:0,
+    desc:'峨眉剑法灵动飘忽，身法冠绝天下。', stat:{agi:2,luck:1}},
+};
+// 门派进阶绝招(声望够可习得)
+const SECT_ULT={ shaolin:'jiuyin', wudang:'liuyun', emei:'wandu' };
+
+window.JH_SYS.sect = function(){
+  if(G.sect){
+    const s=SECTS[G.sect];
+    const ult=SECT_ULT[G.sect], ultS=SKILLS[ult], hasUlt=G.skills.includes(ult);
+    const canUlt = G.rep>=30 && !hasUlt;
+    openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>${s.ic} ${s.nm}</h2></div>
+      <div class="scroll-card"><div class="narrate" style="border:none;background:none;padding:0;margin:0">${s.desc}</div>
+        <div class="mt tiny">本门心法：${SYS_LABEL[s.sys]}系 · 声望 <b style="color:var(--red)">${G.rep}</b></div></div>
+      <div class="mt2 field-label">门派武学</div>
+      <div class="moves">
+        <div class="move" style="cursor:default"><div class="mv-nm">${SKILLS[s.skill].nm}<span class="mv-sys ${SYS_CLS[s.sys]}">${SYS_LABEL[s.sys]}</span></div><div class="mv-desc">${G.skills.includes(s.skill)?'已习得':'入门武学'}</div></div>
+        <div class="move ${canUlt?'':'disabled'}" id="learnUlt"><div class="mv-nm">${ultS.nm}<span class="mv-sys sys-special">绝</span></div><div class="mv-desc">${hasUlt?'已参悟':(canUlt?'声望已足，可参悟！':'需声望 30')}</div></div>
+      </div>
+      <div class="mt2 center"><button class="btn sm" id="doSectTask">领门派差事(+声望+银两)</button></div>`);
+    if(canUlt) $('#learnUlt').onclick=()=>{ const h=grantSkill(ult); toast('参悟门派绝学：'+ultS.nm); JH_SYS.sect(); };
+    $('#doSectTask').onclick=()=>sectTask();
+    return;
+  }
+  // 未入门 → 选门派
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>拜入门派</h2></div>
+    <div class="tiny center" style="margin-bottom:12px">择一门派，习其武学，积累声望参悟绝技。</div>
+    ${Object.keys(SECTS).map(id=>{const s=SECTS[id];return `<div class="scroll-card" style="margin-bottom:10px;cursor:pointer" data-sect="${id}">
+      <div style="font-size:17px;font-weight:700">${s.ic} ${s.nm} <span class="tiny" style="color:var(--dim)">${s.tag}</span></div>
+      <div class="tiny mt" style="color:var(--sub)">${s.desc}</div>
+      <div class="tiny mt">入门武学：${SKILLS[s.skill].nm}</div></div>`;}).join('')}`);
+  $('#subContent').querySelectorAll('[data-sect]').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.sect, s=SECTS[id];
+    if(!confirm(`拜入${s.nm}？`)) return;
+    G.sect=id; grantSkill(s.skill);
+    Object.keys(s.stat||{}).forEach(k=>G.stats[k]+=s.stat[k]);
+    recalcDerived(); addLog(`你拜入${s.nm}，习得${SKILLS[s.skill].nm}。`); save();
+    toast('拜入'+s.nm+'！'); JH_SYS.sect();
+  });
+};
+function sectTask(){
+  const rep=rnd(2,5), silver=rnd(10,30);
+  G.rep+=rep; G.silver+=silver;
+  const tasks=['清剿了山门外的匪徒','押运了一趟门派镖银','抄录了一卷武学秘要','守了三日山门'];
+  addLog(`为${SECTS[G.sect].nm}${rand(tasks)}，声望+${rep}。`); save();
+  toast(`差事办妥，声望+${rep}，银两+${silver}`);
+  JH_SYS.sect();
+}
+
+// ============================================================
+//  奇遇系统: 抉择推进, 影响数值/机缘/招式
+// ============================================================
+const ADVENTURES=[
+  { t:'雨夜古寺', s:'你在破庙避雨，见一蒙面人昏倒在角落，怀中露出半卷发黄的册子。',
+    opts:[
+      {txt:'取走册子', go:()=>{ if(Math.random()<0.5){ return {msg:grantSkillMsg('taiji')+'原来是《太极劲》残卷！',eff:()=>grantSkill('taiji')}; } return {msg:'册子只是寻常拳谱，你随手弃了。'}; }},
+      {txt:'救醒他', go:()=>{ G.rep+=5; return {msg:'蒙面人醒来，感激地塞给你一锭银子便离去。',eff:()=>{G.silver+=rnd(30,60);}}; }},
+      {txt:'悄然离开', go:()=>({msg:'你不愿多事，冒雨离去。'})},
+    ]},
+  { t:'市集卖艺', s:'闹市中一老者摆摊卖艺，自称传授绝学，只收纹银二十。',
+    opts:[
+      {txt:'掏钱学艺(20两)', go:()=>{ if(G.silver<20) return {msg:'囊中羞涩，老者摇头。'}; G.silver-=20; if(Math.random()<0.55){ return {msg:'竟真是高人！'+grantSkillMsg('lingbo'),eff:()=>grantSkill('lingbo')}; } return {msg:'学了几招花架子，权当买个乐子。'}; }},
+      {txt:'拆穿骗局', go:()=>{ G.rep+=3; return {msg:'你当众点破，围观者叫好，江湖名声小涨。'}; }},
+      {txt:'路过不理', go:()=>({msg:'你摇头走开。'})},
+    ]},
+  { t:'悬崖奇遇', s:'追一只灵猴至悬崖，见崖壁石缝中透出微光，似有洞天。',
+    opts:[
+      {txt:'攀崖探洞', go:()=>{ if(Math.random()<0.4){ const st=rand(['atk','agi','root','def']); G.stats[st]+=2; return {msg:`洞中石壁刻满武学心法，你参悟数日，${WUXING.find(w=>w[0]===st)[1]}+2！`}; } G.hp=clamp(G.hp-rnd(10,25),1,G.hpMax); return {msg:'脚下打滑，摔了一跤，气血受损。'}; }},
+      {txt:'作罢下山', go:()=>({msg:'你惜命，转身下山。'})},
+    ]},
+  { t:'路遇镖队', s:'一支镖队遭劫，镖头浴血求援：「好汉相助，必有重谢！」',
+    opts:[
+      {txt:'出手相助', go:()=>({msg:'一场恶斗在所难免！',battle:true})},
+      {txt:'趁乱取财', go:()=>{ G.silver+=rnd(20,50); G.rep-=5; return {msg:'你趁乱摸走一箱银两，但坏了名声。'}; }},
+      {txt:'避而远之', go:()=>({msg:'你不愿卷入，绕道而行。'})},
+    ]},
+  { t:'酒楼论英雄', s:'酒楼里几名江湖客高谈阔论，见你进来，起哄要你露两手。',
+    opts:[
+      {txt:'一展身手', go:()=>{ G.rep+=rnd(3,8); return {msg:'你亮了一手，满座喝彩，声望大涨！'}; }},
+      {txt:'谦逊避让', go:()=>({msg:'你拱手谦让，落个稳重名声。'})},
+      {txt:'买酒同饮', go:()=>{ if(G.silver>=10){ G.silver-=10; G.hp=clamp(G.hp+rnd(10,20),0,G.hpMax); return {msg:'把酒言欢，你听了不少江湖秘闻，气血也回复了些。'}; } return {msg:'囊中无银，只得作罢。'}; }},
+    ]},
+];
+function grantSkillMsg(sid){ return SKILLS[sid]&&!G.skills.includes(sid)?`（似有机缘习得${SKILLS[sid].nm}）`:''; }
+
+window.JH_SYS.adventure = function(){
+  const a=rand(ADVENTURES);
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🎐 ${a.t}</h2></div>
+    <div class="narrate">${a.s}</div>
+    <div class="mt2" id="advOpts">${a.opts.map((o,i)=>`<button class="btn wide" style="margin-bottom:9px" data-opt="${i}">${o.txt}</button>`).join('')}</div>`);
+  $('#advOpts').querySelectorAll('[data-opt]').forEach(el=>el.onclick=()=>{
+    const o=a.opts[+el.dataset.opt];
+    const res=o.go()||{};
+    if(res.eff) try{res.eff();}catch(e){}
+    recalcDerived(); addLog(`【${a.t}】${(res.msg||'').replace(/<[^>]+>/g,'').slice(0,40)}`); save();
+    openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🎐 ${a.t}</h2></div>
+      <div class="narrate">${res.msg||'…'}</div>
+      ${res.battle?`<button class="btn primary wide mt2" id="advFight">拔刀相助</button>`:`<button class="btn wide mt2" onclick="backHome()">离 去</button>`}`);
+    if(res.battle){ $('#advFight').onclick=()=>{ const f=spawnFoe(); f.name='劫镖悍匪'; f.av='😈'; startBattle(f); }; }
+  });
+};
+
+// ============================================================
+//  江湖纪事(story)
+// ============================================================
+window.JH_SYS.story = function(){
+  const logs=(G.log||[]).slice(0,40);
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🪷 江湖纪事</h2></div>
+    <div class="scroll-card">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">${esc(G.name)}${G.title?' · '+esc(G.title):''}</div>
+      <div class="tiny" style="color:var(--sub)">${SECT_NAME(G.sect)||'散人'} · 第${G.lv}重 · 声望${G.rep}</div>
+    </div>
+    <div class="mt2">${logs.length?logs.map(l=>`<div style="padding:8px 2px;border-bottom:1px solid var(--line);font-size:13.5px">${esc(l.txt)}</div>`).join(''):'<div class="tiny center">江湖路才刚起步…</div>'}</div>`);
+};
+
 // ============ 启动 ============
 initEnter();
 </script>
