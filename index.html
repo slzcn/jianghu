@@ -814,6 +814,168 @@ window.JH_SYS.story = function(){
     <div class="mt2">${logs.length?logs.map(l=>`<div style="padding:8px 2px;border-bottom:1px solid var(--line);font-size:13.5px">${esc(l.txt)}</div>`).join(''):'<div class="tiny center">江湖路才刚起步…</div>'}</div>`);
 };
 
+// ============================================================
+//  副本系统: 多波敌人闯关, 通关得稀有武功
+// ============================================================
+const DUNGEONS=[
+  {id:'heifeng', nm:'黑风寨', ic:'🏔️', lv:3, waves:3, tag:'剿灭山贼头目',
+    foes:['山贼','山贼','黑风寨主'], boss:{name:'黑风寨主',av:'👺',skills:['pingzhang','kuangfeng','gedang','yungong'],drop:'kuangfeng'},
+    reward:{silver:120,exp:60,drop:'kuangfeng'}},
+  {id:'cangjing', nm:'藏经阁', ic:'📚', lv:6, waves:3, tag:'夺回被盗武学',
+    foes:['守阁僧','守阁僧','盗经贼首'], boss:{name:'盗经贼首',av:'🥷',skills:['shenxing','lingbo','wandu','yungong'],drop:'wandu'},
+    reward:{silver:220,exp:120,drop:'wandu'}},
+  {id:'moujiao', nm:'魔教总坛', ic:'🔥', lv:10, waves:4, tag:'挑战魔教长老',
+    foes:['魔教众','魔教众','护法','魔教长老'], boss:{name:'魔教长老',av:'😈',skills:['kuangfeng','jiuyin','gedang','yungong'],drop:'jiuyin'},
+    reward:{silver:400,exp:260,drop:'jiuyin'}},
+];
+let DG=null;   // 当前副本进度
+window.JH_SYS.dungeon = function(){
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🏔️ 副本</h2></div>
+    <div class="tiny center" style="margin-bottom:12px">多波恶战，通关得稀有武学。量力而行。</div>
+    ${DUNGEONS.map(d=>{const locked=G.lv<d.lv-2; return `<div class="scroll-card" style="margin-bottom:10px;${locked?'opacity:.5':'cursor:pointer'}" ${locked?'':`data-dg="${d.id}"`}>
+      <div style="font-size:17px;font-weight:700">${d.ic} ${d.nm} <span class="tiny" style="color:var(--dim)">建议第${d.lv}重</span></div>
+      <div class="tiny mt" style="color:var(--sub)">${d.tag} · ${d.waves}波 · 通关得 ${SKILLS[d.reward.drop].nm}</div>
+      ${locked?'<div class="tiny mt" style="color:var(--red)">修为不足，暂难问鼎</div>':''}</div>`;}).join('')}`);
+  $('#subContent').querySelectorAll('[data-dg]').forEach(el=>el.onclick=()=>startDungeon(el.dataset.dg));
+};
+function startDungeon(id){
+  const d=DUNGEONS.find(x=>x.id===id); if(!d) return;
+  if(G.hp<G.hpMax*0.5){ if(!confirm('气血不足五成，仍要进副本？')) return; }
+  DG={id, d, wave:0};
+  nextDungeonWave();
+}
+function nextDungeonWave(){
+  const d=DG.d;
+  if(DG.wave>=d.waves){ return finishDungeon(); }
+  const isBoss=(DG.wave===d.waves-1);
+  const foeNm=d.foes[DG.wave]||'守卫';
+  const lv=d.lv+DG.wave;
+  let foe;
+  if(isBoss){
+    const b=d.boss;
+    foe={ name:b.name, av:b.av, lv:lv+1, hp:90+lv*30, mp:50+lv*10, atk:8+lv*2.5, def:6+lv*2, agi:5+lv*1.6,
+      skills:b.skills, exp:0, silver:0, intro:`💀 <span class="who">${b.name}</span>：「不知天高地厚，受死吧！」`,
+      winText:'', // 通关统一结算
+      onWin:()=>{ DG.wave++; setTimeout(dungeonWaveCleared,50); },
+      onLose:()=>{ DG=null; } };
+  } else {
+    foe={ name:foeNm, av:'🥷', lv, hp:55+lv*20, mp:25+lv*7, atk:5+lv*2, def:4+lv*1.5, agi:4+lv*1.3,
+      skills:['pingzhang','roujin','gedang'], exp:0, silver:0,
+      intro:`第 ${DG.wave+1}/${d.waves} 波 · ${foeNm} 扑上！`,
+      onWin:()=>{ DG.wave++; setTimeout(dungeonWaveCleared,50); },
+      onLose:()=>{ DG=null; } };
+  }
+  startBattle(foe);
+}
+// 每波胜利后: 未完则继续下一波(半回血), 完则结算
+function dungeonWaveCleared(){
+  if(!DG) return;
+  if(DG.wave>=DG.d.waves){ finishDungeon(); return; }
+  G.hp=clamp(G.hp+Math.round(G.hpMax*0.3),0,G.hpMax); G.mp=clamp(G.mp+Math.round(G.mpMax*0.4),0,G.mpMax); save();
+  openSub(`<div class="battle-end win"><div class="be-title" style="font-size:20px">这一波，清了</div>
+    <div class="narrate">稍事喘息，气血回复些许。前方还有恶敌。</div>
+    <div class="mt2"><button class="btn primary wide" id="dgNext">迎战下一波</button>
+    <button class="btn ghost wide mt" onclick="(function(){DG=null;backHome();})()">见好就收(放弃奖励)</button></div></div>`);
+  $('#dgNext').onclick=()=>nextDungeonWave();
+}
+function finishDungeon(){
+  const d=DG.d; DG=null;
+  G.exp+=d.reward.exp; G.silver+=d.reward.silver;
+  let up=[]; while(G.exp>=G.lv*50){ G.exp-=G.lv*50; G.lv++; recalcDerived(); up.push(G.lv); }
+  G.hp=G.hpMax; G.mp=G.mpMax;
+  const dropHtml=grantSkill(d.reward.drop);
+  G.rep+=15;
+  addLog(`你攻克了${d.nm}，声名大振！`); save();
+  openSub(`<div class="battle-end win">
+    <div class="be-title">通 关</div>
+    <div class="narrate">历经${d.waves}波恶战，你攻克了${d.nm}！江湖为之侧目。</div>
+    <div class="mt">经验 <b style="color:var(--red)">+${d.reward.exp}</b> · 银两 <b style="color:var(--red)">+${d.reward.silver}</b> · 声望 <b style="color:var(--red)">+15</b></div>
+    ${up.length?`<div class="mt tiny">修为精进至第 ${G.lv} 重</div>`:''}
+    ${dropHtml}
+    <button class="btn primary wide mt2" onclick="backHome()">凯 旋</button></div>`);
+}
+
+// ============================================================
+//  营生系统: 采药/打铁/跑镖 赚银两(有小概率意外)
+// ============================================================
+const WORKS=[
+  {id:'caiyao', nm:'采药', ic:'🌿', tag:'上山采药，运气好遇灵草', base:[8,20], hp:-5,
+    ok:['采得几味草药，卖了些银两。','运气不错，寻到一株好药材！'], luck:{p:0.15,msg:'竟采到百年灵芝，卖了大价钱！',silver:[40,80]}},
+  {id:'datie', nm:'打铁', ic:'🔨', tag:'铁匠铺帮工，稳当', base:[12,22], hp:0,
+    ok:['叮叮当当一日，挣得工钱。','打了一批农具，铺主很满意。'], luck:{p:0.1,msg:'打出一件好兵器，被识货的买走！',silver:[30,60]}},
+  {id:'paobiao', nm:'跑镖', ic:'📦', tag:'押镖走一趟，钱多但有风险', base:[20,40], hp:0,
+    ok:['一路平安，交了镖，领了镖银。'], risk:{p:0.25,msg:'半路杀出劫匪！',battle:true}},
+];
+window.JH_SYS.work = function(){
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>⚒️ 营生</h2></div>
+    <div class="tiny center" style="margin-bottom:12px">江湖漂泊，也要谋生计。银两可买秘籍、疗伤。</div>
+    <div class="res-bar">银两 <b>${G.silver}</b> · 气血 <b>${G.hp}/${G.hpMax}</b></div>
+    ${WORKS.map(w=>`<div class="scroll-card" style="margin-bottom:10px;cursor:pointer" data-work="${w.id}">
+      <div style="font-size:17px;font-weight:700">${w.ic} ${w.nm}</div>
+      <div class="tiny mt" style="color:var(--sub)">${w.tag} · 约 ${w.base[0]}~${w.base[1]} 两</div></div>`).join('')}
+    <div class="mt2 field-label">客栈</div>
+    <div class="scroll-card" style="cursor:pointer" id="restInn">
+      <div style="font-size:16px;font-weight:700">🏮 客栈疗伤 <span class="tiny" style="color:var(--dim)">10两 回满气血内力</span></div></div>`);
+  $('#subContent').querySelectorAll('[data-work]').forEach(el=>el.onclick=()=>doWork(el.dataset.work));
+  $('#restInn').onclick=()=>{ if(G.silver<10){ toast('银两不足'); return; } G.silver-=10; G.hp=G.hpMax; G.mp=G.mpMax; save(); toast('好生歇息，气血尽复。'); JH_SYS.work(); };
+};
+function doWork(id){
+  const w=WORKS.find(x=>x.id===id); if(!w) return;
+  // 跑镖风险: 遇劫匪触发战斗
+  if(w.risk && Math.random()<w.risk.p){
+    addLog(`跑镖途中遇劫！`);
+    openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>⚒️ ${w.nm}</h2></div>
+      <div class="narrate">${w.risk.msg}</div><button class="btn primary wide mt2" id="workFight">应 战</button>`);
+    $('#workFight').onclick=()=>{ const f=spawnFoe(); f.name='拦路劫匪'; f.av='😠'; f.silver=rnd(30,70); startBattle(f); };
+    return;
+  }
+  let silver=rnd(w.base[0],w.base[1]); let msg=rand(w.ok);
+  if(w.luck && Math.random()<w.luck.p){ silver+=rnd(w.luck.silver[0],w.luck.silver[1]); msg=w.luck.msg; }
+  G.silver+=silver;
+  if(w.hp) G.hp=clamp(G.hp+w.hp,1,G.hpMax);
+  addLog(`【${w.nm}】${msg} 得银${silver}两。`); save();
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>⚒️ ${w.nm}</h2></div>
+    <div class="narrate">${msg}</div>
+    <div class="mt center">银两 <b style="color:var(--red)">+${silver}</b>${w.hp?` · 气血 ${w.hp}`:''}</div>
+    <button class="btn primary wide mt2" id="workAgain">再来一趟</button>
+    <button class="btn ghost wide mt" onclick="JH_SYS.work()">歇 手</button>`);
+  $('#workAgain').onclick=()=>doWork(id);
+}
+
+// ============================================================
+//  论剑: 江湖榜, 挑战名家高手排名
+// ============================================================
+const ARENA=[
+  {rank:'榜末', name:'快剑李三', av:'🗡️', lv:4, skills:['shenxing','lingbo','yungong']},
+  {rank:'第九', name:'铁掌帮主', av:'🖐️', lv:7, skills:['pingzhang','kuangfeng','gedang','yungong']},
+  {rank:'第五', name:'柔云仙姑', av:'🧝‍♀️', lv:11, skills:['roujin','taiji','liuyun','gedang','yungong']},
+  {rank:'第三', name:'剑魔独孤', av:'⚔️', lv:15, skills:['shenxing','wandu','lingbo','yungong','gedang']},
+  {rank:'榜首', name:'天下第一 · 无名', av:'👑', lv:20, skills:['jiuyin','liuyun','wandu','kuangfeng','yungong','gedang']},
+];
+window.JH_SYS.arena = function(){
+  const beaten=G.flags.arenaBeaten||{};
+  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🏆 江湖论剑榜</h2></div>
+    <div class="tiny center" style="margin-bottom:12px">挑战榜上高手，胜则声名鹊起。败者仅伤面子，不失性命。</div>
+    ${ARENA.map((a,i)=>{const done=beaten[a.name]; return `<div class="scroll-card" style="margin-bottom:9px;cursor:pointer" data-arena="${i}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="cb-av">${a.av}</div>
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">${a.name} ${done?'<span class="seal" style="font-size:10px">已胜</span>':''}</div>
+        <div class="tiny" style="color:var(--dim)">${a.rank} · 第${a.lv}重</div></div>
+        <div class="btn sm">挑战</div></div></div>`;}).join('')}`);
+  $('#subContent').querySelectorAll('[data-arena]').forEach(el=>el.onclick=()=>{
+    const a=ARENA[+el.dataset.arena];
+    if(G.hp<G.hpMax*0.3){ toast('气血过低，先去客栈疗伤'); return; }
+    const foe={ name:a.name, av:a.av, lv:a.lv, hp:80+a.lv*28, mp:50+a.lv*9, atk:7+a.lv*2.3, def:6+a.lv*1.9, agi:5+a.lv*1.6,
+      skills:a.skills, exp:a.lv*10, silver:a.lv*8,
+      intro:`🏆 <span class="who">${a.name}</span>(${a.rank})傲然而立：「来领教阁下高招。」`,
+      winText:`你力克${a.name}，江湖榜上留名！`,
+      onWin:()=>{ G.flags.arenaBeaten=G.flags.arenaBeaten||{}; G.flags.arenaBeaten[a.name]=1; G.rep+=a.lv;
+        if(a.rank==='榜首'){ G.title='天下第一'; addLog('你击败无名，登顶江湖！称号「天下第一」！'); }
+        else addLog(`你在论剑榜击败${a.name}(${a.rank})。`); save(); } };
+    startBattle(foe);
+  });
+};
+
 // ============ 启动 ============
 initEnter();
 </script>
