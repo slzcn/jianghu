@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>一炷香江湖</title>
+<style>
+  :root{
+    --ink:#1a1613;         /* 墨色主文字 */
+    --paper:#e8ddc7;       /* 宣纸底 */
+    --paper2:#ddceb0;      /* 深一点宣纸 */
+    --paper3:#f0e8d6;      /* 浅宣纸(卡片) */
+    --sub:#6b5d47;         /* 次要文字 */
+    --dim:#98876a;         /* 弱文字 */
+    --red:#a8321e;         /* 朱砂红 */
+    --red-d:#7c2415;
+    --gold:#9a7b3f;        /* 金 */
+    --jade:#4a7c59;        /* 竹青 */
+    --line:rgba(60,45,30,.22);
+    --line2:rgba(60,45,30,.4);
+    --hp:#a8321e; --mp:#3a6b8c; --stance:#c99a3f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{overscroll-behavior:none}
+  body{
+    font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC","SimSun",serif;
+    background:var(--paper);color:var(--ink);font-size:15px;min-height:100vh;min-height:100dvh;
+    -webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;line-height:1.7;
+  }
+  /* 宣纸纹理 + 暗角 */
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 40%,transparent 55%,rgba(60,40,20,.18) 100%),
+      repeating-linear-gradient(0deg,rgba(120,90,50,.025) 0 2px,transparent 2px 4px),
+      repeating-linear-gradient(90deg,rgba(120,90,50,.02) 0 3px,transparent 3px 6px);}
+  /* 淡墨山水远景 */
+  body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:38vh;z-index:0;pointer-events:none;opacity:.13;
+    background:
+      radial-gradient(ellipse 40% 100% at 15% 100%,var(--ink) 0%,transparent 62%),
+      radial-gradient(ellipse 55% 120% at 48% 100%,var(--ink) 0%,transparent 58%),
+      radial-gradient(ellipse 45% 90% at 82% 100%,var(--ink) 0%,transparent 60%);}
+
+  .wrap{max-width:560px;margin:0 auto;padding:20px 18px 40px;position:relative;z-index:1;min-height:100dvh}
+
+  /* 竖排标题/印章通用 */
+  .seal{display:inline-block;background:var(--red);color:var(--paper3);font-weight:700;
+    padding:3px 7px;border-radius:4px;font-size:12px;letter-spacing:2px;box-shadow:1px 1px 0 var(--red-d)}
+  .brush-title{font-size:30px;font-weight:700;letter-spacing:4px;color:var(--ink);position:relative;display:inline-block}
+  .brush-title::after{content:"";position:absolute;left:-4px;right:-4px;bottom:-3px;height:3px;
+    background:linear-gradient(90deg,transparent,var(--ink) 20%,var(--ink) 80%,transparent);opacity:.55;border-radius:2px}
+
+  /* 通用卡片 */
+  .scroll-card{background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2);
+    border-radius:6px;padding:16px;position:relative;box-shadow:0 3px 12px -6px rgba(40,25,10,.4)}
+  .scroll-card::before,.scroll-card::after{content:"";position:absolute;left:8px;right:8px;height:2px;background:var(--line);opacity:.5}
+  .scroll-card::before{top:4px} .scroll-card::after{bottom:4px}
+
+  /* 按钮:仿木牌/竹简 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    font-family:inherit;font-size:15px;font-weight:600;letter-spacing:1px;cursor:pointer;
+    padding:11px 18px;border-radius:5px;border:1px solid var(--line2);color:var(--ink);
+    background:linear-gradient(180deg,var(--paper3),var(--paper2));transition:.15s;user-select:none}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px -5px rgba(40,25,10,.5);border-color:var(--red)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:linear-gradient(180deg,var(--red),var(--red-d));color:var(--paper3);border-color:var(--red-d)}
+  .btn.primary:hover{box-shadow:0 5px 16px -6px var(--red)}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.wide{width:100%}
+  .btn.sm{padding:7px 12px;font-size:13px}
+
+  /* 场景切换 */
+  .scene{display:none;animation:inkin .5s ease} .scene.on{display:block}
+  @keyframes inkin{from{opacity:0;filter:blur(6px);transform:scale(.99)}to{opacity:1;filter:blur(0);transform:none}}
+
+  /* ===== 入场页 ===== */
+  #enter{text-align:center;padding-top:12vh}
+  #enter .sub{color:var(--sub);margin:14px 0 6px;letter-spacing:3px;font-size:14px}
+  #enter .poem{color:var(--dim);font-size:13px;line-height:2;margin:20px 0 34px;letter-spacing:1px}
+  .ink-splash{font-size:64px;line-height:1;margin-bottom:6px;filter:drop-shadow(2px 3px 2px rgba(40,25,10,.3))}
+
+  /* ===== 角色创建 ===== */
+  .field{margin:16px 0}
+  .field-label{font-size:13px;color:var(--sub);letter-spacing:2px;margin-bottom:8px}
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .opt{padding:11px 12px;border:1px solid var(--line2);border-radius:5px;cursor:pointer;transition:.15s;
+    background:var(--paper3);text-align:left}
+  .opt:hover{border-color:var(--red)}
+  .opt.sel{border-color:var(--red);background:linear-gradient(180deg,#f3e9d3,#eaddc0);box-shadow:inset 0 0 0 1px var(--red)}
+  .opt .o-nm{font-weight:700;font-size:15px}
+  .opt .o-tag{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.5}
+  input.ipt{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:5px;
+    background:var(--paper3);color:var(--ink);font-family:inherit;font-size:16px;outline:none}
+  input.ipt:focus{border-color:var(--red)}
+
+  /* ===== 江湖主界面 ===== */
+  .hero-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .hero-av{width:56px;height:56px;border-radius:8px;display:grid;place-items:center;font-size:30px;flex-shrink:0;
+    background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2);box-shadow:1px 1px 0 var(--line)}
+  .hero-info{flex:1;min-width:0}
+  .hero-name{font-size:20px;font-weight:700;letter-spacing:1px}
+  .hero-name .title{font-size:12px;color:var(--red);margin-left:8px;font-weight:600}
+  .hero-meta{font-size:12px;color:var(--sub);margin-top:2px}
+  .stat-row{display:flex;gap:6px;margin-top:8px}
+  .stat-chip{flex:1;text-align:center;font-size:11px;color:var(--sub);background:var(--paper3);
+    border:1px solid var(--line);border-radius:4px;padding:4px 2px}
+  .stat-chip b{display:block;font-size:15px;color:var(--ink);font-weight:700;margin-top:1px}
+
+  /* 银两/内力等资源条 */
+  .res-bar{display:flex;gap:10px;justify-content:center;margin:12px 0;font-size:13px;color:var(--sub)}
+  .res-bar b{color:var(--red);font-weight:700}
+
+  /* 八大系统入口 */
+  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:16px}
+  .menu-item{padding:16px 12px;border:1px solid var(--line2);border-radius:6px;cursor:pointer;transition:.18s;
+    background:linear-gradient(180deg,var(--paper3),var(--paper2));text-align:center;position:relative;overflow:hidden}
+  .menu-item:hover{transform:translateY(-2px);border-color:var(--red);box-shadow:0 5px 14px -6px rgba(40,25,10,.5)}
+  .menu-item .mi-ic{font-size:30px;line-height:1;margin-bottom:6px}
+  .menu-item .mi-nm{font-weight:700;font-size:16px;letter-spacing:2px}
+  .menu-item .mi-tag{font-size:11px;color:var(--dim);margin-top:3px}
+
+  /* 通用二级页头 */
+  .page-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .page-head .back{cursor:pointer;font-size:20px;color:var(--sub);padding:2px 6px;border-radius:4px}
+  .page-head .back:hover{color:var(--red)}
+  .page-head h2{font-size:20px;font-weight:700;letter-spacing:2px}
+
+  /* 说书人叙事文 */
+  .narrate{background:var(--paper3);border-left:3px solid var(--red);padding:13px 15px;border-radius:0 5px 5px 0;
+    font-size:14.5px;line-height:1.9;color:var(--ink);margin:12px 0;white-space:pre-wrap}
+  .narrate .who{color:var(--red);font-weight:700}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%) translateY(20px);z-index:200;
+    background:var(--ink);color:var(--paper3);padding:9px 18px;border-radius:6px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:.25s;max-width:80vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .tiny{font-size:11.5px;color:var(--dim)}
+  .center{text-align:center}
+  .mt{margin-top:14px} .mt2{margin-top:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== 入场 ===== -->
+  <div class="scene on" id="enter">
+    <div class="ink-splash">🗡️</div>
+    <div class="brush-title">一炷香江湖</div>
+    <div class="sub">一 炷 香 · 一 段 江 湖</div>
+    <div class="poem">十年一剑霜刃，江湖夜雨十年灯。<br>你自何处来，又往何处去？</div>
+    <button class="btn primary wide" id="startBtn">踏入江湖</button>
+    <button class="btn ghost wide mt" id="continueBtn" style="display:none">续写前尘</button>
+    <div class="tiny mt2">选择、招式、机缘，写就你独一份的江湖。</div>
+  </div>
+
+  <!-- ===== 角色创建 ===== -->
+  <div class="scene" id="create">
+    <div class="page-head"><span class="back" id="createBack">‹</span><h2>报上名号</h2></div>
+    <div class="field">
+      <div class="field-label">名号</div>
+      <input class="ipt" id="nameIpt" maxlength="8" placeholder="给自己起个江湖名号">
+    </div>
+    <div class="field">
+      <div class="field-label">出身</div>
+      <div class="opt-grid" id="originGrid"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">资质(决定初始五维倾向)</div>
+      <div class="opt-grid" id="talentGrid"></div>
+    </div>
+    <button class="btn primary wide mt" id="createDone">落笔成名</button>
+  </div>
+
+  <!-- ===== 江湖主界面 ===== -->
+  <div class="scene" id="home">
+    <div class="hero-bar">
+      <div class="hero-av" id="heroAv">🧑</div>
+      <div class="hero-info">
+        <div class="hero-name"><span id="heroName">无名</span><span class="title" id="heroTitle"></span></div>
+        <div class="hero-meta" id="heroMeta">初入江湖</div>
+      </div>
+    </div>
+    <div class="stat-row" id="statRow"></div>
+    <div class="res-bar" id="resBar"></div>
+    <div class="menu-grid" id="menuGrid"></div>
+    <div class="center mt2"><span class="tiny" id="saveHint" style="cursor:pointer">〔 存档 · 重开江湖 〕</span></div>
+  </div>
+
+  <!-- ===== 通用二级页容器(战斗/门派/奇遇等注入这里) ===== -->
+  <div class="scene" id="sub">
+    <div id="subContent"></div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rand=arr=>arr[Math.floor(Math.random()*arr.length)];
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let toastT=null;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),1800); }
+function goScene(id){ document.querySelectorAll('.scene').forEach(s=>s.classList.remove('on')); $('#'+id).classList.add('on'); window.scrollTo(0,0); }
+
+// ============ 数据定义 ============
+const ORIGINS=[
+  {id:'shijia', nm:'世家子弟', tag:'家学渊源，初始银两丰厚', av:'🎎', bonus:{silver:200, root:2}},
+  {id:'guer',   nm:'孤儿', tag:'流落江湖，身法机敏', av:'🥷', bonus:{agi:3}},
+  {id:'youyi',  nm:'游方郎中', tag:'略通医理，气血更盛', av:'🧑‍⚕️', bonus:{hp:20}},
+  {id:'taofan', nm:'逃犯', tag:'亡命之徒，攻伐凌厉', av:'🗡️', bonus:{atk:3}},
+];
+const TALENTS=[
+  {id:'gang', nm:'刚猛', tag:'主攻·力大招沉', dist:{atk:4,root:2,agi:1,def:2,luck:1}},
+  {id:'rou',  nm:'柔化', tag:'主守·以柔克刚', dist:{def:4,root:3,atk:1,agi:1,luck:1}},
+  {id:'ling', nm:'灵巧', tag:'主身法·闪转腾挪', dist:{agi:4,luck:2,atk:2,def:1,root:1}},
+  {id:'qi',   nm:'气宗', tag:'主内力·后劲绵长', dist:{root:4,def:2,atk:1,agi:1,luck:2}},
+];
+// 五维: 力(atk) 身法(agi) 内力(root) 根骨(def) 机缘(luck)
+const WUXING=[['atk','力'],['agi','身法'],['root','内力'],['def','根骨'],['luck','机缘']];
+
+// 八大系统入口(部分先占位, 后续批次填充)
+const MENUS=[
+  {id:'fight',  ic:'⚔️', nm:'历练',  tag:'寻人过招·练招式'},
+  {id:'sect',   ic:'🏯', nm:'门派',  tag:'拜师·门派武学'},
+  {id:'skill',  ic:'📜', nm:'武学',  tag:'招式·秘籍'},
+  {id:'adventure',ic:'🎐',nm:'奇遇', tag:'江湖际遇'},
+  {id:'dungeon',ic:'🏔️', nm:'副本',  tag:'闯关·稀有掉落'},
+  {id:'work',   ic:'⚒️', nm:'营生',  tag:'采药打铁跑镖'},
+  {id:'arena',  ic:'🏆', nm:'论剑',  tag:'江湖榜·切磋'},
+  {id:'story',  ic:'🪷', nm:'际遇',  tag:'你的江湖纪事'},
+];
+
+// ============ 存档 ============
+const SAVE_KEY='jianghu_save_v1';
+let G=null;   // 全局游戏状态
+function defaultState(){
+  return {
+    name:'无名', origin:null, talent:null, av:'🧑',
+    lv:1, exp:0, title:'', sect:null, rep:0,
+    hp:100, hpMax:100, mp:60, mpMax:60,
+    stats:{atk:5, agi:5, root:5, def:5, luck:5},
+    silver:50,
+    skills:['pingzhang'],   // 初始只会平常招(见打斗批次)
+    equip:{},
+    log:[],                 // 江湖纪事
+    flags:{},
+    createdAt:Date.now(),
+  };
+}
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
+function load(){ try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function hasSave(){ return !!load(); }
+function addLog(txt){ if(!G) return; G.log.unshift({t:Date.now(), txt}); if(G.log.length>60) G.log.pop(); save(); }
+
+// ============ 入场 ============
+function initEnter(){
+  $('#continueBtn').style.display = hasSave() ? '' : 'none';
+}
+$('#startBtn').onclick=()=>{ openCreate(); };
+$('#continueBtn').onclick=()=>{ G=load(); if(!G){ toast('存档已失'); return; } enterHome(); };
+
+// ============ 角色创建 ============
+let cSel={origin:null, talent:null};
+function openCreate(){
+  cSel={origin:null, talent:null};
+  $('#nameIpt').value='';
+  $('#originGrid').innerHTML=ORIGINS.map(o=>`<div class="opt" data-origin="${o.id}"><div class="o-nm">${o.av} ${o.nm}</div><div class="o-tag">${o.tag}</div></div>`).join('');
+  $('#talentGrid').innerHTML=TALENTS.map(t=>`<div class="opt" data-talent="${t.id}"><div class="o-nm">${t.nm}</div><div class="o-tag">${t.tag}</div></div>`).join('');
+  $('#originGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{ cSel.origin=el.dataset.origin; $('#originGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el)); });
+  $('#talentGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{ cSel.talent=el.dataset.talent; $('#talentGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el)); });
+  goScene('create');
+}
+$('#createBack').onclick=()=>goScene('enter');
+$('#createDone').onclick=()=>{
+  const nm=$('#nameIpt').value.trim()||'无名客';
+  if(!cSel.origin){ toast('请择一出身'); return; }
+  if(!cSel.talent){ toast('请择一资质'); return; }
+  G=defaultState();
+  G.name=nm; G.origin=cSel.origin; G.talent=cSel.talent;
+  const o=ORIGINS.find(x=>x.id===cSel.origin), t=TALENTS.find(x=>x.id===cSel.talent);
+  G.av=o.av;
+  // 资质分配五维
+  Object.keys(t.dist).forEach(k=>{ G.stats[k]=5+t.dist[k]; });
+  // 出身加成
+  const b=o.bonus||{};
+  if(b.silver) G.silver+=b.silver;
+  if(b.hp){ G.hpMax+=b.hp; }
+  ['atk','agi','root','def','luck'].forEach(k=>{ if(b[k]) G.stats[k]+=b[k]; });
+  recalcDerived();
+  G.hp=G.hpMax; G.mp=G.mpMax;
+  addLog(`你以「${o.nm}」之身踏入江湖，人称「${nm}」。`);
+  save();
+  enterHome();
+};
+
+// 由五维派生 hp/mp 上限
+function recalcDerived(){
+  G.hpMax = 80 + G.stats.def*8 + G.lv*10;
+  G.mpMax = 40 + G.stats.root*6 + G.lv*4;
+  G.hp=clamp(G.hp,0,G.hpMax); G.mp=clamp(G.mp,0,G.mpMax);
+}
+
+// ============ 江湖主界面 ============
+function enterHome(){ renderHome(); goScene('home'); }
+function renderHome(){
+  $('#heroAv').textContent=G.av;
+  $('#heroName').textContent=G.name;
+  $('#heroTitle').textContent=G.title?('· '+G.title):'';
+  const sectNm=G.sect?SECT_NAME(G.sect):'散人';
+  $('#heroMeta').textContent=`第 ${G.lv} 重 · ${sectNm}${G.rep?(' · 声望 '+G.rep):''}`;
+  $('#statRow').innerHTML=WUXING.map(([k,n])=>`<div class="stat-chip">${n}<b>${G.stats[k]}</b></div>`).join('');
+  $('#resBar').innerHTML=`气血 <b>${G.hp}/${G.hpMax}</b> &nbsp;·&nbsp; 内力 <b>${G.mp}/${G.mpMax}</b> &nbsp;·&nbsp; 银两 <b>${G.silver}</b>`;
+  $('#menuGrid').innerHTML=MENUS.map(m=>`<div class="menu-item" data-menu="${m.id}"><div class="mi-ic">${m.ic}</div><div class="mi-nm">${m.nm}</div><div class="mi-tag">${m.tag}</div></div>`).join('');
+  $('#menuGrid').querySelectorAll('.menu-item').forEach(el=>el.onclick=()=>openMenu(el.dataset.menu));
+}
+function SECT_NAME(id){ return (window.SECTS&&SECTS[id]&&SECTS[id].nm)||id; }
+
+function openMenu(id){
+  // 各系统在后续批次实现; 先给占位提示
+  const impl={ /* 后续批次注册: fight/sect/skill/adventure/dungeon/work/arena/story */ };
+  if(window.JH_SYS && window.JH_SYS[id]){ window.JH_SYS[id](); return; }
+  toast('【'+ (MENUS.find(m=>m.id===id)||{}).nm +'】即将开放…');
+}
+
+$('#saveHint').onclick=()=>{
+  if(confirm('确定重开江湖？当前存档将清除。')){ localStorage.removeItem(SAVE_KEY); location.reload(); }
+};
+
+// 通用: 打开二级页
+function openSub(html){ $('#subContent').innerHTML=html; goScene('sub'); }
+function backHome(){ recalcDerived(); save(); renderHome(); goScene('home'); }
+
+// ============ 启动 ============
+initEnter();
+</script>
+</body>
+</html>
