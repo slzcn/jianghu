@@ -3,981 +3,373 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>一炷香江湖</title>
+<title>江湖 · 多人</title>
+<link rel="preconnect" href="https://cddkniwbhvcbfgkgomtl.supabase.co" crossorigin>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
   :root{
-    --ink:#1a1613;         /* 墨色主文字 */
-    --paper:#e8ddc7;       /* 宣纸底 */
-    --paper2:#ddceb0;      /* 深一点宣纸 */
-    --paper3:#f0e8d6;      /* 浅宣纸(卡片) */
-    --sub:#6b5d47;         /* 次要文字 */
-    --dim:#98876a;         /* 弱文字 */
-    --red:#a8321e;         /* 朱砂红 */
-    --red-d:#7c2415;
-    --gold:#9a7b3f;        /* 金 */
-    --jade:#4a7c59;        /* 竹青 */
-    --line:rgba(60,45,30,.22);
-    --line2:rgba(60,45,30,.4);
-    --hp:#a8321e; --mp:#3a6b8c; --stance:#c99a3f;
+    --ink:#1a1613; --paper:#e8ddc7; --paper2:#ddceb0; --paper3:#f0e8d6;
+    --sub:#6b5d47; --dim:#98876a; --red:#a8321e; --red-d:#7c2415;
+    --gold:#9a7b3f; --jade:#4a7c59; --blue:#3a6b8c;
+    --line:rgba(60,45,30,.22); --line2:rgba(60,45,30,.4);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{overscroll-behavior:none}
-  body{
-    font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC","SimSun",serif;
+  body{font-family:"Kaiti SC","STKaiti","KaiTi","Songti SC","SimSun",serif;
     background:var(--paper);color:var(--ink);font-size:15px;min-height:100vh;min-height:100dvh;
-    -webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;line-height:1.7;
-  }
-  /* 宣纸纹理 + 暗角 */
+    -webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;line-height:1.7}
   body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
-    background:
-      radial-gradient(ellipse 90% 70% at 50% 40%,transparent 55%,rgba(60,40,20,.18) 100%),
-      repeating-linear-gradient(0deg,rgba(120,90,50,.025) 0 2px,transparent 2px 4px),
-      repeating-linear-gradient(90deg,rgba(120,90,50,.02) 0 3px,transparent 3px 6px);}
-  /* 淡墨山水远景 */
-  body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:38vh;z-index:0;pointer-events:none;opacity:.13;
-    background:
-      radial-gradient(ellipse 40% 100% at 15% 100%,var(--ink) 0%,transparent 62%),
-      radial-gradient(ellipse 55% 120% at 48% 100%,var(--ink) 0%,transparent 58%),
-      radial-gradient(ellipse 45% 90% at 82% 100%,var(--ink) 0%,transparent 60%);}
+    background:radial-gradient(ellipse 90% 70% at 50% 40%,transparent 55%,rgba(60,40,20,.18) 100%),
+      repeating-linear-gradient(0deg,rgba(120,90,50,.025) 0 2px,transparent 2px 4px);}
+  body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:34vh;z-index:0;pointer-events:none;opacity:.12;
+    background:radial-gradient(ellipse 45% 100% at 18% 100%,var(--ink),transparent 62%),
+      radial-gradient(ellipse 55% 120% at 52% 100%,var(--ink),transparent 58%),
+      radial-gradient(ellipse 45% 90% at 85% 100%,var(--ink),transparent 60%);}
+  .wrap{max-width:560px;margin:0 auto;padding:16px 16px 30px;position:relative;z-index:1;min-height:100dvh}
 
-  .wrap{max-width:560px;margin:0 auto;padding:20px 18px 40px;position:relative;z-index:1;min-height:100dvh}
-
-  /* 竖排标题/印章通用 */
-  .seal{display:inline-block;background:var(--red);color:var(--paper3);font-weight:700;
-    padding:3px 7px;border-radius:4px;font-size:12px;letter-spacing:2px;box-shadow:1px 1px 0 var(--red-d)}
-  .brush-title{font-size:30px;font-weight:700;letter-spacing:4px;color:var(--ink);position:relative;display:inline-block}
-  .brush-title::after{content:"";position:absolute;left:-4px;right:-4px;bottom:-3px;height:3px;
-    background:linear-gradient(90deg,transparent,var(--ink) 20%,var(--ink) 80%,transparent);opacity:.55;border-radius:2px}
-
-  /* 通用卡片 */
-  .scroll-card{background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2);
-    border-radius:6px;padding:16px;position:relative;box-shadow:0 3px 12px -6px rgba(40,25,10,.4)}
-  .scroll-card::before,.scroll-card::after{content:"";position:absolute;left:8px;right:8px;height:2px;background:var(--line);opacity:.5}
-  .scroll-card::before{top:4px} .scroll-card::after{bottom:4px}
-
-  /* 按钮:仿木牌/竹简 */
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
-    font-family:inherit;font-size:15px;font-weight:600;letter-spacing:1px;cursor:pointer;
-    padding:11px 18px;border-radius:5px;border:1px solid var(--line2);color:var(--ink);
-    background:linear-gradient(180deg,var(--paper3),var(--paper2));transition:.15s;user-select:none}
+  .seal{display:inline-block;background:var(--red);color:var(--paper3);font-weight:700;padding:2px 6px;border-radius:4px;font-size:11px;letter-spacing:1px}
+  .brush-title{font-size:30px;font-weight:700;letter-spacing:5px;position:relative;display:inline-block}
+  .brush-title::after{content:"";position:absolute;left:-4px;right:-4px;bottom:-3px;height:3px;background:linear-gradient(90deg,transparent,var(--ink) 20%,var(--ink) 80%,transparent);opacity:.55}
+  .scroll-card{background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2);border-radius:6px;padding:14px;position:relative;box-shadow:0 3px 12px -6px rgba(40,25,10,.4)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-size:15px;font-weight:600;letter-spacing:1px;cursor:pointer;
+    padding:11px 18px;border-radius:5px;border:1px solid var(--line2);color:var(--ink);background:linear-gradient(180deg,var(--paper3),var(--paper2));transition:.15s;user-select:none}
   .btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px -5px rgba(40,25,10,.5);border-color:var(--red)}
   .btn:active{transform:translateY(0)}
   .btn.primary{background:linear-gradient(180deg,var(--red),var(--red-d));color:var(--paper3);border-color:var(--red-d)}
-  .btn.primary:hover{box-shadow:0 5px 16px -6px var(--red)}
-  .btn.ghost{background:transparent}
+  .btn.ghost{background:transparent} .btn.wide{width:100%} .btn.sm{padding:7px 12px;font-size:13px}
   .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
-  .btn.wide{width:100%}
-  .btn.sm{padding:7px 12px;font-size:13px}
-
-  /* 场景切换 */
-  .scene{display:none;animation:inkin .5s ease} .scene.on{display:block}
-  @keyframes inkin{from{opacity:0;filter:blur(6px);transform:scale(.99)}to{opacity:1;filter:blur(0);transform:none}}
-
-  /* ===== 入场页 ===== */
-  #enter{text-align:center;padding-top:12vh}
-  #enter .sub{color:var(--sub);margin:14px 0 6px;letter-spacing:3px;font-size:14px}
-  #enter .poem{color:var(--dim);font-size:13px;line-height:2;margin:20px 0 34px;letter-spacing:1px}
-  .ink-splash{font-size:64px;line-height:1;margin-bottom:6px;filter:drop-shadow(2px 3px 2px rgba(40,25,10,.3))}
-
-  /* ===== 角色创建 ===== */
-  .field{margin:16px 0}
-  .field-label{font-size:13px;color:var(--sub);letter-spacing:2px;margin-bottom:8px}
-  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-  .opt{padding:11px 12px;border:1px solid var(--line2);border-radius:5px;cursor:pointer;transition:.15s;
-    background:var(--paper3);text-align:left}
-  .opt:hover{border-color:var(--red)}
-  .opt.sel{border-color:var(--red);background:linear-gradient(180deg,#f3e9d3,#eaddc0);box-shadow:inset 0 0 0 1px var(--red)}
-  .opt .o-nm{font-weight:700;font-size:15px}
-  .opt .o-tag{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.5}
-  input.ipt{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:5px;
-    background:var(--paper3);color:var(--ink);font-family:inherit;font-size:16px;outline:none}
+  input.ipt{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:5px;background:var(--paper3);color:var(--ink);font-family:inherit;font-size:16px;outline:none}
   input.ipt:focus{border-color:var(--red)}
-
-  /* ===== 江湖主界面 ===== */
-  .hero-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-  .hero-av{width:56px;height:56px;border-radius:8px;display:grid;place-items:center;font-size:30px;flex-shrink:0;
-    background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2);box-shadow:1px 1px 0 var(--line)}
-  .hero-info{flex:1;min-width:0}
-  .hero-name{font-size:20px;font-weight:700;letter-spacing:1px}
-  .hero-name .title{font-size:12px;color:var(--red);margin-left:8px;font-weight:600}
-  .hero-meta{font-size:12px;color:var(--sub);margin-top:2px}
-  .stat-row{display:flex;gap:6px;margin-top:8px}
-  .stat-chip{flex:1;text-align:center;font-size:11px;color:var(--sub);background:var(--paper3);
-    border:1px solid var(--line);border-radius:4px;padding:4px 2px}
-  .stat-chip b{display:block;font-size:15px;color:var(--ink);font-weight:700;margin-top:1px}
-
-  /* 银两/内力等资源条 */
-  .res-bar{display:flex;gap:10px;justify-content:center;margin:12px 0;font-size:13px;color:var(--sub)}
-  .res-bar b{color:var(--red);font-weight:700}
-
-  /* 八大系统入口 */
-  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:16px}
-  .menu-item{padding:16px 12px;border:1px solid var(--line2);border-radius:6px;cursor:pointer;transition:.18s;
-    background:linear-gradient(180deg,var(--paper3),var(--paper2));text-align:center;position:relative;overflow:hidden}
-  .menu-item:hover{transform:translateY(-2px);border-color:var(--red);box-shadow:0 5px 14px -6px rgba(40,25,10,.5)}
-  .menu-item .mi-ic{font-size:30px;line-height:1;margin-bottom:6px}
-  .menu-item .mi-nm{font-weight:700;font-size:16px;letter-spacing:2px}
-  .menu-item .mi-tag{font-size:11px;color:var(--dim);margin-top:3px}
-
-  /* 通用二级页头 */
-  .page-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-  .page-head .back{cursor:pointer;font-size:20px;color:var(--sub);padding:2px 6px;border-radius:4px}
-  .page-head .back:hover{color:var(--red)}
-  .page-head h2{font-size:20px;font-weight:700;letter-spacing:2px}
-
-  /* 说书人叙事文 */
-  .narrate{background:var(--paper3);border-left:3px solid var(--red);padding:13px 15px;border-radius:0 5px 5px 0;
-    font-size:14.5px;line-height:1.9;color:var(--ink);margin:12px 0;white-space:pre-wrap}
-  .narrate .who{color:var(--red);font-weight:700}
-
-  /* toast */
-  #toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%) translateY(20px);z-index:200;
-    background:var(--ink);color:var(--paper3);padding:9px 18px;border-radius:6px;font-size:13.5px;
-    opacity:0;pointer-events:none;transition:.25s;max-width:80vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.3)}
-  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-
-  .tiny{font-size:11.5px;color:var(--dim)}
-  .center{text-align:center}
+  .scene{display:none;animation:inkin .5s ease} .scene.on{display:block}
+  @keyframes inkin{from{opacity:0;filter:blur(6px)}to{opacity:1;filter:blur(0)}}
+  .tiny{font-size:11.5px;color:var(--dim)} .center{text-align:center}
   .mt{margin-top:14px} .mt2{margin-top:22px}
 
-  /* ===== 战斗界面 ===== */
-  .battle{position:relative}
-  .combatant{background:var(--paper3);border:1px solid var(--line2);border-radius:6px;padding:11px 13px;margin-bottom:10px;position:relative;transition:.12s}
-  .combatant.hurt{animation:cbHurt .3s}
-  @keyframes cbHurt{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-  .cb-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
-  .cb-av{width:38px;height:38px;border-radius:7px;display:grid;place-items:center;font-size:22px;flex-shrink:0;
-    background:linear-gradient(180deg,var(--paper),var(--paper2));border:1px solid var(--line2)}
-  .cb-nm{font-weight:700;font-size:15px} .cb-nm .lv{font-size:11px;color:var(--dim);margin-left:5px}
-  .cb-intent{margin-left:auto;font-size:12px;color:var(--sub)}
-  .bar{height:12px;border-radius:6px;background:rgba(60,45,30,.15);overflow:hidden;position:relative;margin-bottom:4px}
-  .bar>i{display:block;height:100%;border-radius:6px;transition:width .35s cubic-bezier(.3,.8,.3,1)}
-  .bar .bar-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9.5px;color:var(--paper3);text-shadow:0 0 2px rgba(0,0,0,.5);letter-spacing:.5px}
-  .bar-hp>i{background:linear-gradient(90deg,var(--red-d),var(--red))}
-  .bar-mp{height:8px} .bar-mp>i{background:linear-gradient(90deg,#2c5madere,#3a6b8c)}
-  .bar-mp>i{background:linear-gradient(90deg,#2c5a7a,#4a86ad)}
-  .bar-stance{height:6px} .bar-stance>i{background:linear-gradient(90deg,#b8863a,#e0b45a)}
-  .stance-label{font-size:10px;color:var(--dim);margin:2px 0 0}
+  /* 入场 */
+  #enter{text-align:center;padding-top:11vh}
+  .ink-splash{font-size:60px;margin-bottom:4px;filter:drop-shadow(2px 3px 2px rgba(40,25,10,.3))}
+  #enter .sub{color:var(--sub);margin:12px 0;letter-spacing:3px;font-size:14px}
+  #enter .poem{color:var(--dim);font-size:13px;line-height:2;margin:16px 0 30px}
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .opt{padding:11px 12px;border:1px solid var(--line2);border-radius:5px;cursor:pointer;transition:.15s;background:var(--paper3);text-align:left}
+  .opt.sel{border-color:var(--red);background:linear-gradient(180deg,#f3e9d3,#eaddc0);box-shadow:inset 0 0 0 1px var(--red)}
+  .opt .o-nm{font-weight:700;font-size:15px} .opt .o-tag{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.5}
+  .field{margin:15px 0} .field-label{font-size:13px;color:var(--sub);letter-spacing:2px;margin-bottom:8px}
 
-  /* 招式选择 */
-  .moves{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-  .move{padding:10px 11px;border:1px solid var(--line2);border-radius:6px;cursor:pointer;transition:.14s;
-    background:linear-gradient(180deg,var(--paper3),var(--paper2));text-align:left;position:relative}
-  .move:hover:not(.disabled){border-color:var(--red);transform:translateY(-1px)}
-  .move.disabled{opacity:.4;cursor:not-allowed}
-  .move .mv-nm{font-weight:700;font-size:14.5px}
-  .move .mv-sys{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:600}
-  .sys-gang{background:rgba(168,50,30,.16);color:var(--red)}
-  .sys-rou{background:rgba(74,124,89,.18);color:var(--jade)}
-  .sys-ling{background:rgba(58,107,140,.16);color:#3a6b8c}
-  .sys-special{background:rgba(154,123,63,.2);color:var(--gold)}
-  .move .mv-desc{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5}
-  .move .mv-cost{position:absolute;top:9px;right:10px;font-size:10.5px;color:#3a6b8c}
+  /* 顶栏 */
+  .top-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .me-chip{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+  .me-av{width:40px;height:40px;border-radius:7px;display:grid;place-items:center;font-size:22px;flex-shrink:0;background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2)}
+  .me-name{font-weight:700;font-size:16px} .me-name .t{font-size:11px;color:var(--red);margin-left:5px}
+  .me-meta{font-size:11.5px;color:var(--sub)}
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0}
+  .conn-dot.live{background:var(--jade);box-shadow:0 0 6px var(--jade)}
 
-  /* 战斗播报 */
-  .battle-log{background:var(--paper3);border:1px solid var(--line);border-radius:5px;padding:9px 12px;margin-top:12px;
-    font-size:13px;line-height:1.75;min-height:52px;max-height:110px;overflow-y:auto}
-  .battle-log .bl-you{color:var(--red)} .battle-log .bl-foe{color:#3a6b8c} .battle-log .bl-crit{color:var(--gold);font-weight:700}
-  .battle-log .bl-break{color:var(--red);font-weight:700}
+  /* 门派分厅切换 */
+  .sect-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+  .sect-tab{flex-shrink:0;padding:7px 13px;border-radius:16px;border:1px solid var(--line2);background:var(--paper3);cursor:pointer;font-size:13px;white-space:nowrap;transition:.14s}
+  .sect-tab.on{background:var(--red);color:var(--paper3);border-color:var(--red-d)}
 
-  /* 全屏水墨特效 */
-  #fx{position:fixed;inset:0;z-index:150;pointer-events:none;display:flex;align-items:center;justify-content:center}
-  .fx-word{font-size:88px;font-weight:900;color:var(--red);opacity:0;text-shadow:0 0 20px rgba(168,50,30,.6),3px 4px 0 var(--red-d)}
-  .fx-word.go{animation:fxWord .7s cubic-bezier(.2,.9,.3,1.2)}
-  @keyframes fxWord{0%{opacity:0;transform:scale(2.4) rotate(-8deg)}30%{opacity:1;transform:scale(1) rotate(-4deg)}70%{opacity:1}100%{opacity:0;transform:scale(1.1)}}
-  .fx-slash{position:absolute;width:140%;height:5px;background:linear-gradient(90deg,transparent,var(--ink),transparent);opacity:0}
-  .fx-slash.go{animation:fxSlash .35s ease-out}
-  @keyframes fxSlash{0%{opacity:0;transform:translateX(-60%) rotate(-20deg) scaleX(.3)}40%{opacity:.9}100%{opacity:0;transform:translateX(60%) rotate(-20deg) scaleX(1.2)}}
-  .shake{animation:screenShake .3s}
-  @keyframes screenShake{0%,100%{transform:none}20%{transform:translate(-4px,3px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,-3px)}80%{transform:translate(3px,2px)}}
+  /* 在线群侠(江湖榜) */
+  .heroes{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;margin-bottom:6px}
+  .hero-pav{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;width:52px;cursor:pointer}
+  .hero-pav .hp-av{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;font-size:20px;
+    background:linear-gradient(180deg,var(--paper3),var(--paper2));border:1px solid var(--line2);position:relative;transition:.15s}
+  .hero-pav:hover .hp-av{border-color:var(--red);transform:translateY(-2px)}
+  .hero-pav.me .hp-av{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+  .hero-pav .hp-nm{font-size:10px;color:var(--sub);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+  .hp-bot{position:absolute;right:-2px;bottom:-2px;font-size:8px;background:var(--jade);color:var(--paper3);border-radius:4px;padding:0 3px;line-height:1.4}
 
-  /* 战斗结束 */
-  .battle-end{text-align:center;padding:22px 12px}
-  .battle-end .be-title{font-size:26px;font-weight:800;letter-spacing:3px;margin-bottom:8px}
-  .battle-end.win .be-title{color:var(--red)} .battle-end.lose .be-title{color:var(--sub)}
-  .combo-tag{display:inline-block;font-size:12px;color:var(--gold);font-weight:700;margin-left:6px;opacity:0;transition:.2s}
-  .combo-tag.on{opacity:1}
+  /* 传音消息流 */
+  .chat{background:var(--paper3);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-height:38vh;max-height:52vh;overflow-y:auto;margin-bottom:10px}
+  .msg{margin-bottom:9px;display:flex;gap:8px;align-items:flex-start}
+  .msg.me{flex-direction:row-reverse;text-align:right}
+  .msg .m-av{width:30px;height:30px;border-radius:6px;display:grid;place-items:center;font-size:16px;flex-shrink:0;background:var(--paper);border:1px solid var(--line)}
+  .msg .m-body{max-width:78%}
+  .msg .m-nm{font-size:11px;color:var(--sub);margin-bottom:1px}
+  .msg .m-nm .bot{color:var(--jade);font-size:9px;margin-left:3px}
+  .msg .m-txt{background:var(--paper);border:1px solid var(--line);border-radius:4px 9px 9px 9px;padding:6px 10px;font-size:14px;line-height:1.5;display:inline-block;word-break:break-word}
+  .msg.me .m-txt{border-radius:9px 4px 9px 9px;background:linear-gradient(180deg,#f3e6cd,#ecdcbc)}
+  .msg.sys{justify-content:center}
+  .msg.sys .m-txt{background:none;border:none;color:var(--dim);font-size:12px;padding:2px}
+
+  /* 传音输入 */
+  .composer{display:flex;gap:8px;align-items:flex-end}
+  .composer .ipt{flex:1}
+
+  /* 战书/PK 弹层 */
+  .modal-mask{position:fixed;inset:0;z-index:120;background:rgba(30,20,10,.55);display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-mask.on{display:flex;animation:inkin .3s}
+  .modal{width:min(440px,94vw);max-height:88vh;overflow-y:auto}
+
+  /* 战斗界面(第三批用) */
+  #toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%) translateY(20px);z-index:200;background:var(--ink);color:var(--paper3);padding:9px 18px;border-radius:6px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;max-width:80vw;text-align:center}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .page-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .page-head .back{cursor:pointer;font-size:20px;color:var(--sub)} .page-head .back:hover{color:var(--red)}
+  .page-head h2{font-size:19px;font-weight:700;letter-spacing:2px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- ===== 入场 ===== -->
+  <!-- 入场 -->
   <div class="scene on" id="enter">
-    <div class="ink-splash">🗡️</div>
-    <div class="brush-title">一炷香江湖</div>
-    <div class="sub">一 炷 香 · 一 段 江 湖</div>
-    <div class="poem">十年一剑霜刃，江湖夜雨十年灯。<br>你自何处来，又往何处去？</div>
-    <button class="btn primary wide" id="startBtn">踏入江湖</button>
-    <button class="btn ghost wide mt" id="continueBtn" style="display:none">续写前尘</button>
-    <div class="tiny mt2">选择、招式、机缘，写就你独一份的江湖。</div>
+    <div class="ink-splash">🏯</div>
+    <div class="brush-title">江　湖</div>
+    <div class="sub">众 侠 云 集 · 传 音 论 剑</div>
+    <div class="poem">此地非一人之江湖。<br>与四方豪杰同处一世，传音、结派、切磋。</div>
+    <div id="enterForm" style="text-align:left;max-width:420px;margin:0 auto">
+      <div class="field"><div class="field-label">名号</div><input class="ipt" id="nameIpt" maxlength="8" placeholder="报上江湖名号"></div>
+      <div class="field"><div class="field-label">立身之门</div><div class="opt-grid" id="sectGrid"></div></div>
+      <div class="field"><div class="field-label">资质</div><div class="opt-grid" id="talentGrid"></div></div>
+    </div>
+    <button class="btn primary wide mt" id="startBtn">踏入江湖</button>
   </div>
 
-  <!-- ===== 角色创建 ===== -->
-  <div class="scene" id="create">
-    <div class="page-head"><span class="back" id="createBack">‹</span><h2>报上名号</h2></div>
-    <div class="field">
-      <div class="field-label">名号</div>
-      <input class="ipt" id="nameIpt" maxlength="8" placeholder="给自己起个江湖名号">
-    </div>
-    <div class="field">
-      <div class="field-label">出身</div>
-      <div class="opt-grid" id="originGrid"></div>
-    </div>
-    <div class="field">
-      <div class="field-label">资质(决定初始五维倾向)</div>
-      <div class="opt-grid" id="talentGrid"></div>
-    </div>
-    <button class="btn primary wide mt" id="createDone">落笔成名</button>
-  </div>
-
-  <!-- ===== 江湖主界面 ===== -->
-  <div class="scene" id="home">
-    <div class="hero-bar">
-      <div class="hero-av" id="heroAv">🧑</div>
-      <div class="hero-info">
-        <div class="hero-name"><span id="heroName">无名</span><span class="title" id="heroTitle"></span></div>
-        <div class="hero-meta" id="heroMeta">初入江湖</div>
+  <!-- 江湖大厅 -->
+  <div class="scene" id="hall">
+    <div class="top-bar">
+      <span class="conn-dot" id="connDot"></span>
+      <div class="me-chip">
+        <div class="me-av" id="meAv">🧑</div>
+        <div style="min-width:0">
+          <div class="me-name"><span id="meName">无名</span><span class="t" id="meTitle"></span></div>
+          <div class="me-meta" id="meMeta"></div>
+        </div>
       </div>
+      <span class="btn sm ghost" id="rankBtn">威望榜</span>
     </div>
-    <div class="stat-row" id="statRow"></div>
-    <div class="res-bar" id="resBar"></div>
-    <div class="menu-grid" id="menuGrid"></div>
-    <div class="center mt2"><span class="tiny" id="saveHint" style="cursor:pointer">〔 存档 · 重开江湖 〕</span></div>
+    <div class="sect-tabs" id="sectTabs"></div>
+    <div class="tiny" style="margin:2px 0 4px;color:var(--sub)">在此地的群侠(点击可下战书)：</div>
+    <div class="heroes" id="heroes"></div>
+    <div class="chat" id="chat"></div>
+    <div class="composer">
+      <input class="ipt" id="msgIpt" maxlength="120" placeholder="传音入密…">
+      <button class="btn primary" id="sendBtn">传音</button>
+    </div>
   </div>
 
-  <!-- ===== 通用二级页容器(战斗/门派/奇遇等注入这里) ===== -->
-  <div class="scene" id="sub">
-    <div id="subContent"></div>
-  </div>
-
+  <!-- 二级页(PK/榜等) -->
+  <div class="scene" id="sub"><div id="subContent"></div></div>
 </div>
+
+<div class="modal-mask" id="modalMask"><div class="scroll-card modal" id="modalBox"></div></div>
 <div id="toast"></div>
 
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const rand=arr=>arr[Math.floor(Math.random()*arr.length)];
+const rand=a=>a[Math.floor(Math.random()*a.length)];
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let toastT=null;
-function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),1800); }
-function goScene(id){ document.querySelectorAll('.scene').forEach(s=>s.classList.remove('on')); $('#'+id).classList.add('on'); window.scrollTo(0,0); }
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),1900);}
+function goScene(id){document.querySelectorAll('.scene').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);}
+function showModal(html){$('#modalBox').innerHTML=html;$('#modalMask').classList.add('on');}
+function hideModal(){$('#modalMask').classList.remove('on');}
+$('#modalMask').onclick=e=>{if(e.target===$('#modalMask'))hideModal();};
 
-// ============ 数据定义 ============
-const ORIGINS=[
-  {id:'shijia', nm:'世家子弟', tag:'家学渊源，初始银两丰厚', av:'🎎', bonus:{silver:200, root:2}},
-  {id:'guer',   nm:'孤儿', tag:'流落江湖，身法机敏', av:'🥷', bonus:{agi:3}},
-  {id:'youyi',  nm:'游方郎中', tag:'略通医理，气血更盛', av:'🧑‍⚕️', bonus:{hp:20}},
-  {id:'taofan', nm:'逃犯', tag:'亡命之徒，攻伐凌厉', av:'🗡️', bonus:{atk:3}},
-];
-const TALENTS=[
-  {id:'gang', nm:'刚猛', tag:'主攻·力大招沉', dist:{atk:4,root:2,agi:1,def:2,luck:1}},
-  {id:'rou',  nm:'柔化', tag:'主守·以柔克刚', dist:{def:4,root:3,atk:1,agi:1,luck:1}},
-  {id:'ling', nm:'灵巧', tag:'主身法·闪转腾挪', dist:{agi:4,luck:2,atk:2,def:1,root:1}},
-  {id:'qi',   nm:'气宗', tag:'主内力·后劲绵长', dist:{root:4,def:2,atk:1,agi:1,luck:2}},
-];
-// 五维: 力(atk) 身法(agi) 内力(root) 根骨(def) 机缘(luck)
-const WUXING=[['atk','力'],['agi','身法'],['root','内力'],['def','根骨'],['luck','机缘']];
+// ---- 配置 ----
+const SB_URL='https://cddkniwbhvcbfgkgomtl.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkZGtuaXdiaHZjYmZna2dvbXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDc2MTMsImV4cCI6MjA5ODAyMzYxM30.1DaEJe4n91CZ0NcXKvyvPVUobPfc8QCePP3EG1aGpnY';
+let sb=null;
 
-// 八大系统入口(部分先占位, 后续批次填充)
-const MENUS=[
-  {id:'fight',  ic:'⚔️', nm:'历练',  tag:'寻人过招·练招式'},
-  {id:'sect',   ic:'🏯', nm:'门派',  tag:'拜师·门派武学'},
-  {id:'skill',  ic:'📜', nm:'武学',  tag:'招式·秘籍'},
-  {id:'adventure',ic:'🎐',nm:'奇遇', tag:'江湖际遇'},
-  {id:'dungeon',ic:'🏔️', nm:'副本',  tag:'闯关·稀有掉落'},
-  {id:'work',   ic:'⚒️', nm:'营生',  tag:'采药打铁跑镖'},
-  {id:'arena',  ic:'🏆', nm:'论剑',  tag:'江湖榜·切磋'},
-  {id:'story',  ic:'🪷', nm:'际遇',  tag:'你的江湖纪事'},
-];
-
-// ============ 存档 ============
-const SAVE_KEY='jianghu_save_v1';
-let G=null;   // 全局游戏状态
-function defaultState(){
-  return {
-    name:'无名', origin:null, talent:null, av:'🧑',
-    lv:1, exp:0, title:'', sect:null, rep:0,
-    hp:100, hpMax:100, mp:60, mpMax:60,
-    stats:{atk:5, agi:5, root:5, def:5, luck:5},
-    silver:50,
-    skills:['pingzhang','roujin','shenxing','yungong','gedang'],   // 初始三系基础招+运功+格挡, 一入门就能见招拆招
-    equip:{},
-    log:[],                 // 江湖纪事
-    flags:{},
-    createdAt:Date.now(),
-  };
-}
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
-function load(){ try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
-function hasSave(){ return !!load(); }
-function addLog(txt){ if(!G) return; G.log.unshift({t:Date.now(), txt}); if(G.log.length>60) G.log.pop(); save(); }
-
-// ============ 入场 ============
-function initEnter(){
-  $('#continueBtn').style.display = hasSave() ? '' : 'none';
-}
-$('#startBtn').onclick=()=>{ openCreate(); };
-$('#continueBtn').onclick=()=>{ G=load(); if(!G){ toast('存档已失'); return; } enterHome(); };
-
-// ============ 角色创建 ============
-let cSel={origin:null, talent:null};
-function openCreate(){
-  cSel={origin:null, talent:null};
-  $('#nameIpt').value='';
-  $('#originGrid').innerHTML=ORIGINS.map(o=>`<div class="opt" data-origin="${o.id}"><div class="o-nm">${o.av} ${o.nm}</div><div class="o-tag">${o.tag}</div></div>`).join('');
-  $('#talentGrid').innerHTML=TALENTS.map(t=>`<div class="opt" data-talent="${t.id}"><div class="o-nm">${t.nm}</div><div class="o-tag">${t.tag}</div></div>`).join('');
-  $('#originGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{ cSel.origin=el.dataset.origin; $('#originGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el)); });
-  $('#talentGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{ cSel.talent=el.dataset.talent; $('#talentGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el)); });
-  goScene('create');
-}
-$('#createBack').onclick=()=>goScene('enter');
-$('#createDone').onclick=()=>{
-  const nm=$('#nameIpt').value.trim()||'无名客';
-  if(!cSel.origin){ toast('请择一出身'); return; }
-  if(!cSel.talent){ toast('请择一资质'); return; }
-  G=defaultState();
-  G.name=nm; G.origin=cSel.origin; G.talent=cSel.talent;
-  const o=ORIGINS.find(x=>x.id===cSel.origin), t=TALENTS.find(x=>x.id===cSel.talent);
-  G.av=o.av;
-  // 资质分配五维
-  Object.keys(t.dist).forEach(k=>{ G.stats[k]=5+t.dist[k]; });
-  // 出身加成
-  const b=o.bonus||{};
-  if(b.silver) G.silver+=b.silver;
-  if(b.hp){ G.hpMax+=b.hp; }
-  ['atk','agi','root','def','luck'].forEach(k=>{ if(b[k]) G.stats[k]+=b[k]; });
-  recalcDerived();
-  G.hp=G.hpMax; G.mp=G.mpMax;
-  addLog(`你以「${o.nm}」之身踏入江湖，人称「${nm}」。`);
-  save();
-  enterHome();
-};
-
-// 由五维派生 hp/mp 上限
-function recalcDerived(){
-  G.hpMax = 80 + G.stats.def*8 + G.lv*10;
-  G.mpMax = 40 + G.stats.root*6 + G.lv*4;
-  G.hp=clamp(G.hp,0,G.hpMax); G.mp=clamp(G.mp,0,G.mpMax);
-}
-
-// ============ 江湖主界面 ============
-function enterHome(){ renderHome(); goScene('home'); }
-function renderHome(){
-  $('#heroAv').textContent=G.av;
-  $('#heroName').textContent=G.name;
-  $('#heroTitle').textContent=G.title?('· '+G.title):'';
-  const sectNm=G.sect?SECT_NAME(G.sect):'散人';
-  $('#heroMeta').textContent=`第 ${G.lv} 重 · ${sectNm}${G.rep?(' · 声望 '+G.rep):''}`;
-  $('#statRow').innerHTML=WUXING.map(([k,n])=>`<div class="stat-chip">${n}<b>${G.stats[k]}</b></div>`).join('');
-  $('#resBar').innerHTML=`气血 <b>${G.hp}/${G.hpMax}</b> &nbsp;·&nbsp; 内力 <b>${G.mp}/${G.mpMax}</b> &nbsp;·&nbsp; 银两 <b>${G.silver}</b>`;
-  $('#menuGrid').innerHTML=MENUS.map(m=>`<div class="menu-item" data-menu="${m.id}"><div class="mi-ic">${m.ic}</div><div class="mi-nm">${m.nm}</div><div class="mi-tag">${m.tag}</div></div>`).join('');
-  $('#menuGrid').querySelectorAll('.menu-item').forEach(el=>el.onclick=()=>openMenu(el.dataset.menu));
-}
-function SECT_NAME(id){ return (window.SECTS&&SECTS[id]&&SECTS[id].nm)||id; }
-
-function openMenu(id){
-  // 各系统在后续批次实现; 先给占位提示
-  const impl={ /* 后续批次注册: fight/sect/skill/adventure/dungeon/work/arena/story */ };
-  if(window.JH_SYS && window.JH_SYS[id]){ window.JH_SYS[id](); return; }
-  toast('【'+ (MENUS.find(m=>m.id===id)||{}).nm +'】即将开放…');
-}
-
-$('#saveHint').onclick=()=>{
-  if(confirm('确定重开江湖？当前存档将清除。')){ localStorage.removeItem(SAVE_KEY); location.reload(); }
-};
-
-// 通用: 打开二级页
-function openSub(html){ $('#subContent').innerHTML=html; goScene('sub'); }
-function backHome(){ recalcDerived(); save(); renderHome(); goScene('home'); }
-
-// ============================================================
-//  武学系统: 招式库
-//  sys: gang(刚,攻)/rou(柔,守)/ling(灵,身法) 三系相克: gang>rou>ling>gang
-//  kind: attack普攻 / special绝招 / charge蓄力 / guard格挡
-// ============================================================
-const SKILLS={
-  // —— 基础三招(初始+通用) ——
-  pingzhang:{nm:'平常招', sys:'gang', kind:'attack', mp:0, pow:1.0, desc:'最朴实的一击，不耗内力'},
-  roujin:   {nm:'柔劲', sys:'rou', kind:'attack', mp:4, pow:1.0, desc:'以柔劲卸力反打'},
-  shenxing: {nm:'身法击', sys:'ling', kind:'attack', mp:4, pow:1.0, desc:'借身法欺身近击'},
-  yungong:  {nm:'运功', sys:'none', kind:'charge', mp:0, pow:0, desc:'回内力，下招威力翻倍'},
-  gedang:   {nm:'格挡', sys:'none', kind:'guard', mp:2, pow:0, desc:'大幅减伤，但易被身法破防'},
-  // —— 门派/奇遇/副本习得(后续系统解锁) ——
-  kuangfeng:{nm:'狂风刀法', sys:'gang', kind:'attack', mp:10, pow:1.6, desc:'刚猛霸道，破守极佳'},
-  taiji:    {nm:'太极劲', sys:'rou', kind:'attack', mp:10, pow:1.6, desc:'四两拨千斤，化解身法'},
-  lingbo:   {nm:'凌波微步', sys:'ling', kind:'attack', mp:10, pow:1.6, desc:'飘忽如影，专克刚猛'},
-  // —— 绝招(高耗·相克成功时爆发) ——
-  jiuyin:   {nm:'九阴白骨爪', sys:'gang', kind:'special', mp:24, pow:2.6, desc:'绝招·相克命中伤害暴涨'},
-  liuyun:   {nm:'流云飞袖', sys:'rou', kind:'special', mp:24, pow:2.6, desc:'绝招·柔中带杀'},
-  wandu:    {nm:'万剑归宗', sys:'ling', kind:'special', mp:26, pow:2.8, desc:'绝招·剑气纵横'},
-};
-const SYS_LABEL={gang:'刚',rou:'柔',ling:'灵',none:'—',special:'绝'};
-const SYS_CLS={gang:'sys-gang',rou:'sys-rou',ling:'sys-ling'};
-// 相克: 返回 1(克制/占优) / 0(平) / -1(被克)
-function sysWin(a,b){
-  if(a===b||a==='none'||b==='none') return 0;
-  const beat={gang:'rou',rou:'ling',ling:'gang'};
-  if(beat[a]===b) return 1;
-  if(beat[b]===a) return -1;
-  return 0;
-}
-
-// ============================================================
-//  战斗引擎
-// ============================================================
-let BT=null;   // 当前战斗状态
-function makeFighter(cfg){
-  return { name:cfg.name, av:cfg.av||'🧑', lv:cfg.lv||1,
-    hp:cfg.hp, hpMax:cfg.hp, mp:cfg.mp, mpMax:cfg.mp,
-    atk:cfg.atk, def:cfg.def, agi:cfg.agi,
-    stance:0, stanceMax:100,           // 架势(破防)条: 满则被处决重击
-    charged:false, guarding:false,
-    skills:cfg.skills, isFoe:!!cfg.isFoe, ai:cfg.ai||'balance' };
-}
-// 从玩家 G 造战斗单位
-function playerFighter(){
-  return makeFighter({ name:G.name, av:G.av, lv:G.lv, hp:G.hpMax, mp:G.mpMax,
-    atk:8+G.stats.atk*2, def:6+G.stats.def*1.5, agi:5+G.stats.agi*1.6,
-    skills:G.skills.slice() });
-}
-// 开战: foe = {name,av,lv,hp,mp,atk,def,agi,skills,ai, onWin, onLose, intro}
-function startBattle(foe){
-  const you=playerFighter();
-  you.hp=G.hp; you.mp=G.mp;   // 沿用当前气血内力(疗伤后满)
-  const enemy=makeFighter({...foe, isFoe:true});
-  BT={ you, enemy, turn:0, combo:0, over:false, foeCfg:foe, log:[] };
-  // 敌人本回合意图(先定, 供玩家参考——增策略)
-  decideFoeMove();
-  renderBattle(foe.intro || `${enemy.name} 拦住了去路！`);
-  goScene('sub');
-}
-function pushBLog(html){ BT.log.unshift(html); if(BT.log.length>8) BT.log.pop(); }
-
-function renderBattle(topMsg){
-  const {you,enemy}=BT;
-  const bar=(cls,cur,max,txt)=>`<div class="bar ${cls}"><i style="width:${clamp(cur/max*100,0,100)}%"></i><span class="bar-txt">${txt||''}</span></div>`;
-  const cbHtml=(f,who)=>`
-    <div class="combatant" id="cb-${who}">
-      <div class="cb-top"><div class="cb-av">${f.av}</div>
-        <div class="cb-nm">${esc(f.name)}<span class="lv">第${f.lv}重</span></div>
-        ${who==='enemy'?`<div class="cb-intent" id="foeIntent"></div>`:''}
-      </div>
-      ${bar('bar-hp',f.hp,f.hpMax,`气血 ${Math.ceil(f.hp)}/${f.hpMax}`)}
-      ${bar('bar-mp',f.mp,f.mpMax,'')}
-      <div class="stance-label">架势 ${Math.round(f.stance)}%</div>
-      ${bar('bar-stance',f.stance,f.stanceMax,'')}
-    </div>`;
-  const movesHtml=you.skills.map(sid=>{
-    const s=SKILLS[sid]; if(!s) return '';
-    const can=you.mp>=s.mp;
-    const sysTag=s.kind==='special'?'sys-special':(SYS_CLS[s.sys]||'');
-    const label=s.kind==='special'?'绝':SYS_LABEL[s.sys];
-    return `<div class="move ${can?'':'disabled'}" data-skill="${sid}">
-      <div class="mv-nm">${s.nm}${label!=='—'?`<span class="mv-sys ${sysTag}">${label}</span>`:''}</div>
-      ${s.mp?`<span class="mv-cost">${s.mp}内力</span>`:''}
-      <div class="mv-desc">${s.desc}</div></div>`;
-  }).join('');
-  const logHtml=BT.log.map(l=>l).join('<br>')||'<span class="tiny">出招见招拆招…</span>';
-  openSub(`<div class="battle">
-    <div class="page-head"><span class="back" id="btFlee">‹</span><h2>过招${BT.combo>1?`<span class="combo-tag on">连击 ×${BT.combo}</span>`:''}</h2></div>
-    ${topMsg?`<div class="narrate">${topMsg}</div>`:''}
-    ${cbHtml(enemy,'enemy')}
-    ${cbHtml(you,'you')}
-    <div class="battle-log" id="btLog">${logHtml}</div>
-    <div class="moves" id="btMoves">${movesHtml}</div>
-  </div>`);
-  updateFoeIntent();
-  $('#btFlee').onclick=()=>tryFlee();
-  $('#btMoves').querySelectorAll('.move:not(.disabled)').forEach(el=>el.onclick=()=>playerMove(el.dataset.skill));
-}
-function updateFoeIntent(){
-  const el=$('#foeIntent'); if(!el||!BT.foeNext) return;
-  const s=SKILLS[BT.foeNext]; if(!s) return;
-  const hint={attack:'欲攻',special:'蓄势待发！',charge:'正在运功',guard:'凝神防守'}[s.kind]||'';
-  el.textContent='● '+hint;
-}
-// 敌人 AI 决定下一招
-function decideFoeMove(){
-  const {enemy,you}=BT;
-  const usable=enemy.skills.filter(sid=>SKILLS[sid] && enemy.mp>=SKILLS[sid].mp);
-  let pick;
-  // 残血/内力足 → 倾向绝招; 内力低 → 运功; 否则按 ai 风格
-  const specials=usable.filter(s=>SKILLS[s].kind==='special');
-  if(specials.length && enemy.mp>=24 && Math.random()<0.4) pick=rand(specials);
-  else if(enemy.mp<8 && enemy.skills.includes('yungong') && Math.random()<0.6) pick='yungong';
-  else{
-    const atks=usable.filter(s=>SKILLS[s].kind==='attack');
-    pick = atks.length?rand(atks):(usable[0]||'pingzhang');
-  }
-  BT.foeNext=pick;
-}
-
-// 玩家出招 → 结算本回合(双方同时出)
-function playerMove(sid){
-  if(BT.over) return;
-  const {you,enemy}=BT;
-  const ys=SKILLS[sid]; if(!ys || you.mp<ys.mp){ toast('内力不足'); return; }
-  const foeSid=BT.foeNext, fs=SKILLS[foeSid]||SKILLS.pingzhang;
-  BT.turn++;
-  // 扣内力
-  you.mp-=ys.mp; enemy.mp-=fs.mp;
-  // 重置上回合临时态
-  you.guarding=(ys.kind==='guard'); enemy.guarding=(fs.kind==='guard');
-  let lines=[];
-
-  // 处理蓄力/格挡(非攻击招)
-  const yAtk=(ys.kind==='attack'||ys.kind==='special');
-  const fAtk=(fs.kind==='attack'||fs.kind==='special');
-  if(ys.kind==='charge'){ you.mp=clamp(you.mp+18,0,you.mpMax); you.charged=true; lines.push(`<span class="bl-you">你运功调息，内力回涌，下一招将威力大增。</span>`); }
-  if(fs.kind==='charge'){ enemy.mp=clamp(enemy.mp+18,0,enemy.mpMax); enemy.charged=true; lines.push(`<span class="bl-foe">${enemy.name}凝气蓄势…</span>`); }
-
-  // 双方攻击结算
-  if(yAtk){ const r=resolveHit(you,enemy,ys,fs,'you'); lines.push(r); }
-  if(fAtk && enemy.hp>0){ const r=resolveHit(enemy,you,fs,ys,'foe'); lines.push(r); }
-
-  // 消耗蓄力
-  if(yAtk) you.charged=false;
-  if(fAtk) enemy.charged=false;
-
-  lines.forEach(l=>pushBLog(l));
-  // 判定胜负
-  if(enemy.hp<=0){ return endBattle(true); }
-  if(you.hp<=0){ return endBattle(false); }
-  // 敌人定下回合意图
-  decideFoeMove();
-  // 重渲染 + 受击动画
-  renderBattle('');
-  animateHits(yAtk, fAtk);
-  syncPlayerFromBattle();
-}
-// 单次攻击结算: attacker 用 aSkill 打 defender(defender本回合用 dSkill)
-function resolveHit(attacker,defender,aSkill,dSkill,side){
-  const cls=side==='you'?'bl-you':'bl-foe';
-  const nm=attacker.name, dnm=defender.name;
-  // 基础伤害
-  let dmg = attacker.atk * aSkill.pow;
-  // 蓄力翻倍
-  if(attacker.charged) dmg*=2;
-  // 相克
-  const rel=sysWin(aSkill.sys, dSkill.sys);
-  let critMark='', breakMark='';
-  if(rel>0){ dmg*=1.6; critMark=' 破！'; }        // 克制
-  else if(rel<0){ dmg*=0.6; }                     // 被克
-  // 防御减免(格挡额外减)
-  let red = defender.def*0.5;
-  if(defender.guarding){ red += defender.def*1.2; }
-  // 身法招破格挡: 攻方 ling 且守方 guard → 破防
-  if(defender.guarding && aSkill.sys==='ling'){ red*=0.2; breakMark=' 身法破防！'; }
-  dmg = Math.max(3, dmg-red);
-  // 绝招+克制 → 暴击
-  let isCrit=false;
-  if(aSkill.kind==='special' && rel>=0){ dmg*=1.35; isCrit=true; }
-  // 残血背水一战(攻方hp<25%)
-  if(attacker.hp < attacker.hpMax*0.25){ dmg*=1.2; }
-  dmg=Math.round(dmg);
-  defender.hp=clamp(defender.hp-dmg,0,defender.hpMax);
-  // 架势累积: 被克/被绝招 涨架势; 满则下次受创加重
-  defender.stance=clamp(defender.stance + (rel<0?8:16) + (isCrit?14:0), 0, defender.stanceMax);
-  let execMark='';
-  if(defender.stance>=defender.stanceMax){ defender.stance=0; const extra=Math.round(defender.hpMax*0.12); defender.hp=clamp(defender.hp-extra,0,defender.hpMax); execMark=`（架势崩溃，追加${extra}！）`; }
-  // combo
-  if(side==='you'){ if(rel>0){ BT.combo++; } else { BT.combo=0; } }
-  // 特效
-  if(side==='you'){ if(isCrit||rel>0) fxWord(aSkill.kind==='special'?aSkill.nm:'破'); if(rel>0||isCrit) fxSlash(); }
-  const critCls=isCrit?'bl-crit':(rel>0?'bl-break':'');
-  return `<span class="${cls}">${side==='you'?'你':nm}施展<b>${aSkill.nm}</b>，`
-    + `<span class="${critCls}">${critMark||breakMark||''}</span>`
-    + `${isCrit?'绝招爆发，':''}对${side==='you'?nm:'你'}造成 <b>${dmg}</b> 伤害${execMark}</span>`;
-}
-function syncPlayerFromBattle(){ G.hp=Math.round(BT.you.hp); G.mp=Math.round(BT.you.mp); save(); }
-function animateHits(youAtk,foeAtk){
-  if(youAtk){ const c=$('#cb-enemy'); if(c){ c.classList.add('hurt'); setTimeout(()=>c.classList.remove('hurt'),300);} }
-  if(foeAtk){ const c=$('#cb-you'); if(c){ c.classList.add('hurt'); setTimeout(()=>c.classList.remove('hurt'),300);} document.querySelector('.wrap').classList.add('shake'); setTimeout(()=>document.querySelector('.wrap').classList.remove('shake'),300); }
-}
-// 逃跑
-function tryFlee(){
-  if(BT.over) return;
-  if(Math.random()<0.5){ toast('你抽身退走，暂避锋芒。'); BT.over=true; syncPlayerFromBattle(); backHome(); }
-  else{ pushBLog('<span class="bl-foe">逃跑失败！对方欺身而上。</span>'); const {you,enemy}=BT; const fs=SKILLS[BT.foeNext]||SKILLS.pingzhang; if(fs.kind==='attack'||fs.kind==='special'){ resolveHit(enemy,you,fs,SKILLS.pingzhang,'foe'); } decideFoeMove(); if(you.hp<=0) return endBattle(false); renderBattle(''); syncPlayerFromBattle(); }
-}
-// 结束
-function endBattle(win){
-  BT.over=true;
-  const foe=BT.foeCfg;
-  syncPlayerFromBattle();
-  if(win){
-    const exp=foe.exp||(foe.lv*12), silver=foe.silver||rnd(foe.lv*5,foe.lv*15);
-    G.exp+=exp; G.silver+=silver;
-    let up=[]; while(G.exp>=G.lv*50){ G.exp-=G.lv*50; G.lv++; recalcDerived(); G.hp=G.hpMax; G.mp=G.mpMax; up.push(G.lv); }
-    addLog(`你击败了${foe.name}，得经验${exp}、银两${silver}。`);
-    let dropHtml='';
-    if(foe.drop && Math.random()<(foe.dropRate||0.5)){ dropHtml=grantSkill(foe.drop); }
-    save();
-    openSub(`<div class="battle-end win">
-      <div class="be-title">胜</div>
-      <div class="narrate">${foe.winText||`一番苦斗，${foe.name}败下阵来。`}</div>
-      <div class="mt">经验 <b style="color:var(--red)">+${exp}</b> · 银两 <b style="color:var(--red)">+${silver}</b></div>
-      ${up.length?`<div class="mt tiny">修为精进！已至第 ${G.lv} 重</div>`:''}
-      ${dropHtml}
-      <button class="btn primary wide mt2" onclick="backHome()">收 势</button>
-    </div>`);
-    if(typeof foe.onWin==='function'){ try{foe.onWin();}catch(e){} }
-  } else {
-    G.hp=Math.max(1,Math.round(G.hpMax*0.15));  // 败而不死, 留一线
-    addLog(`你败于${foe.name}之手，负伤退走。`);
-    save();
-    openSub(`<div class="battle-end lose">
-      <div class="be-title">败</div>
-      <div class="narrate">${foe.loseText||`技不如人，你负伤退走，暗自记下这一败。`}</div>
-      <div class="mt tiny">气血仅余 ${G.hp}，去客栈疗伤或营生调养吧。</div>
-      <button class="btn wide mt2" onclick="backHome()">忍 痛 退 走</button>
-    </div>`);
-    if(typeof foe.onLose==='function'){ try{foe.onLose();}catch(e){} }
-  }
-}
-// 习得招式
-function grantSkill(sid){
-  if(!SKILLS[sid]) return '';
-  if(G.skills.includes(sid)) return `<div class="mt tiny">（${SKILLS[sid].nm} 已在你的武学中）</div>`;
-  G.skills.push(sid); save();
-  return `<div class="mt" style="color:var(--gold);font-weight:700">✦ 习得武学：${SKILLS[sid].nm}！</div>`;
-}
-
-// 全屏特效
-function fxWord(w){ let fx=$('#fx'); if(!fx){ fx=document.createElement('div'); fx.id='fx'; document.body.appendChild(fx); }
-  const el=document.createElement('div'); el.className='fx-word'; el.textContent=w; fx.innerHTML=''; fx.appendChild(el);
-  void el.offsetWidth; el.classList.add('go'); setTimeout(()=>{ if(el.parentNode)el.remove(); },750); }
-function fxSlash(){ let fx=$('#fx'); if(!fx){ fx=document.createElement('div'); fx.id='fx'; document.body.appendChild(fx); }
-  const el=document.createElement('div'); el.className='fx-slash'; fx.appendChild(el); void el.offsetWidth; el.classList.add('go'); setTimeout(()=>{ if(el.parentNode)el.remove(); },350); }
-
-// ============ 历练系统(打斗入口): 遇到随机对手 ============
-const FOE_POOL=[
-  {name:'山贼', av:'🥷', lvOff:0, skills:['pingzhang','gedang'], ai:'balance', winText:'山贼抱头鼠窜，丢下几两碎银。'},
-  {name:'镖师', av:'💪', lvOff:1, skills:['pingzhang','roujin','gedang'], ai:'guard', winText:'镖师拱手：「阁下好身手。」'},
-  {name:'流浪剑客', av:'🗡️', lvOff:1, skills:['shenxing','lingbo','yungong'], ai:'agi', drop:'lingbo', dropRate:0.3, winText:'剑客收剑入鞘，飘然而去。'},
-  {name:'恶霸', av:'👹', lvOff:2, skills:['pingzhang','kuangfeng','yungong'], ai:'aggro', drop:'kuangfeng', dropRate:0.25},
-  {name:'蒙面客', av:'🎭', lvOff:2, skills:['roujin','taiji','gedang','yungong'], ai:'balance', drop:'taiji', dropRate:0.25},
-];
-function spawnFoe(){
-  const t=rand(FOE_POOL);
-  const lv=Math.max(1,G.lv+(t.lvOff||0)+rnd(-1,1));
-  return {
-    name:t.name, av:t.av, lv,
-    hp:60+lv*22, mp:30+lv*8,
-    atk:6+lv*2.2, def:4+lv*1.6, agi:4+lv*1.4,
-    skills:t.skills, ai:t.ai,
-    exp:lv*12, silver:rnd(lv*4,lv*14),
-    drop:t.drop, dropRate:t.dropRate,
-    winText:t.winText, intro:`${t.av} <span class="who">${t.name}</span> 挡在你面前，摆开架势！`,
-  };
-}
-
-// ============ 注册系统入口 ============
-window.JH_SYS = window.JH_SYS || {};
-window.JH_SYS.fight = function(){
-  if(G.hp < G.hpMax*0.2){ toast('气血过低，先去疗伤或调养'); return; }
-  startBattle(spawnFoe());
-};
-window.JH_SYS.skill = function(){
-  const list=G.skills.map(sid=>{ const s=SKILLS[sid]; if(!s) return ''; const label=s.kind==='special'?'绝':SYS_LABEL[s.sys];
-    const sysTag=s.kind==='special'?'sys-special':(SYS_CLS[s.sys]||'');
-    return `<div class="move" style="cursor:default"><div class="mv-nm">${s.nm}${label!=='—'?`<span class="mv-sys ${sysTag}">${label}</span>`:''}</div>${s.mp?`<span class="mv-cost">${s.mp}内力</span>`:''}<div class="mv-desc">${s.desc}</div></div>`;
-  }).join('');
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>武学</h2></div>
-    <div class="tiny center" style="margin-bottom:10px">三系相克：刚 ⊳ 柔 ⊳ 灵 ⊳ 刚。见招拆招，克制则伤害暴涨。</div>
-    <div class="moves">${list}</div>
-    <div class="tiny center mt2">招式可从门派、奇遇、副本习得。</div>`);
-};
-
-// ============================================================
-//  门派系统
-// ============================================================
 const SECTS={
-  shaolin:{nm:'少林', ic:'🏯', tag:'外家刚猛，禅武双修', sys:'gang', skill:'kuangfeng', joinRep:0,
-    desc:'天下武功出少林。以刚猛掌法、罗汉拳法名震江湖。', stat:{def:2,atk:1}},
-  wudang:{nm:'武当', ic:'⛩️', tag:'以柔克刚，太极两仪', sys:'rou', skill:'taiji', joinRep:0,
-    desc:'道法自然，太极生两仪。四两拨千斤，后发先至。', stat:{root:2,def:1}},
-  emei:{nm:'峨眉', ic:'🗻', tag:'身法飘逸，剑走轻灵', sys:'ling', skill:'lingbo', joinRep:0,
-    desc:'峨眉剑法灵动飘忽，身法冠绝天下。', stat:{agi:2,luck:1}},
+  sanren:{nm:'散人', ic:'🚶', tag:'无门无派，自在江湖'},
+  shaolin:{nm:'少林', ic:'🏯', tag:'外家刚猛', sys:'gang'},
+  wudang:{nm:'武当', ic:'⛩️', tag:'以柔克刚', sys:'rou'},
+  emei:{nm:'峨眉', ic:'🗻', tag:'身法灵动', sys:'ling'},
+  gaibang:{nm:'丐帮', ic:'🥢', tag:'人多势众', sys:'gang'},
 };
-// 门派进阶绝招(声望够可习得)
-const SECT_ULT={ shaolin:'jiuyin', wudang:'liuyun', emei:'wandu' };
+const SECT_ORDER=['sanren','shaolin','wudang','emei','gaibang'];
+const TALENTS=[
+  {id:'gang', nm:'刚猛', tag:'主攻', dist:{atk:4,def:2}},
+  {id:'rou',  nm:'柔化', tag:'主守', dist:{def:4,root:2}},
+  {id:'ling', nm:'灵巧', tag:'主身法', dist:{agi:4,luck:2}},
+  {id:'qi',   nm:'气宗', tag:'主内力', dist:{root:4,def:2}},
+];
 
-window.JH_SYS.sect = function(){
-  if(G.sect){
-    const s=SECTS[G.sect];
-    const ult=SECT_ULT[G.sect], ultS=SKILLS[ult], hasUlt=G.skills.includes(ult);
-    const canUlt = G.rep>=30 && !hasUlt;
-    openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>${s.ic} ${s.nm}</h2></div>
-      <div class="scroll-card"><div class="narrate" style="border:none;background:none;padding:0;margin:0">${s.desc}</div>
-        <div class="mt tiny">本门心法：${SYS_LABEL[s.sys]}系 · 声望 <b style="color:var(--red)">${G.rep}</b></div></div>
-      <div class="mt2 field-label">门派武学</div>
-      <div class="moves">
-        <div class="move" style="cursor:default"><div class="mv-nm">${SKILLS[s.skill].nm}<span class="mv-sys ${SYS_CLS[s.sys]}">${SYS_LABEL[s.sys]}</span></div><div class="mv-desc">${G.skills.includes(s.skill)?'已习得':'入门武学'}</div></div>
-        <div class="move ${canUlt?'':'disabled'}" id="learnUlt"><div class="mv-nm">${ultS.nm}<span class="mv-sys sys-special">绝</span></div><div class="mv-desc">${hasUlt?'已参悟':(canUlt?'声望已足，可参悟！':'需声望 30')}</div></div>
-      </div>
-      <div class="mt2 center"><button class="btn sm" id="doSectTask">领门派差事(+声望+银两)</button></div>`);
-    if(canUlt) $('#learnUlt').onclick=()=>{ const h=grantSkill(ult); toast('参悟门派绝学：'+ultS.nm); JH_SYS.sect(); };
-    $('#doSectTask').onclick=()=>sectTask();
-    return;
+// ---- 我的身份 ----
+let ME=null;   // {uid, name, sect, av, ...}
+let curSect='sanren';
+const LS='jianghu_mp_v1';
+function saveLocal(){ try{ localStorage.setItem(LS, JSON.stringify({name:ME.name,sect:ME.sect,av:ME.av,talent:ME.talent})); }catch(e){} }
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS)||'null'); }catch(e){ return null; } }
+
+// ============ 入场/建角色 ============
+let sel={sect:null, talent:null};
+function initEnter(){
+  const saved=loadLocal();
+  $('#sectGrid').innerHTML=SECT_ORDER.map(id=>{const s=SECTS[id];return `<div class="opt" data-sect="${id}"><div class="o-nm">${s.ic} ${s.nm}</div><div class="o-tag">${s.tag}</div></div>`;}).join('');
+  $('#talentGrid').innerHTML=TALENTS.map(t=>`<div class="opt" data-talent="${t.id}"><div class="o-nm">${t.nm}</div><div class="o-tag">${t.tag}</div></div>`).join('');
+  $('#sectGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{sel.sect=el.dataset.sect;$('#sectGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el));});
+  $('#talentGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{sel.talent=el.dataset.talent;$('#talentGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el));});
+  if(saved){ $('#nameIpt').value=saved.name||''; sel.sect=saved.sect; sel.talent=saved.talent;
+    $('#sectGrid').querySelector(`[data-sect="${saved.sect}"]`)?.classList.add('sel');
+    $('#talentGrid').querySelector(`[data-talent="${saved.talent}"]`)?.classList.add('sel'); }
+}
+$('#startBtn').onclick=async()=>{
+  const nm=$('#nameIpt').value.trim()||'无名客';
+  if(!sel.sect){ toast('请择立身之门'); return; }
+  if(!sel.talent){ toast('请择资质'); return; }
+  $('#startBtn').disabled=true; $('#startBtn').textContent='入江湖中…';
+  try{ await enterJianghu(nm, sel.sect, sel.talent); }
+  catch(e){ console.warn(e); toast('入江湖失败，请重试'); $('#startBtn').disabled=false; $('#startBtn').textContent='踏入江湖'; }
+};
+
+// ============ 后端就绪 + 匿名登录 + 建角色 ============
+async function ensureSb(){
+  if(sb) return sb;
+  for(let i=0;i<60 && !(window.supabase&&window.supabase.createClient);i++) await new Promise(r=>setTimeout(r,50));
+  if(!(window.supabase&&window.supabase.createClient)) throw new Error('supabase未加载');
+  sb=window.supabase.createClient(SB_URL,SB_ANON,{auth:{persistSession:true,autoRefreshToken:true}});
+  return sb;
+}
+async function enterJianghu(name, sect, talent){
+  await ensureSb();
+  let { data:{ session } } = await sb.auth.getSession();
+  if(!session){ const { data, error }=await sb.auth.signInAnonymously(); if(error) throw error; session=data.session; }
+  const uid=session.user.id;
+  // 五维
+  const t=TALENTS.find(x=>x.id===talent)||TALENTS[0];
+  const stats={atk:5,agi:5,root:5,def:5,luck:5};
+  Object.keys(t.dist).forEach(k=>stats[k]+=t.dist[k]);
+  const av=({gang:'🗡️',rou:'🧘',ling:'🥷',qi:'🧙'})[talent]||'🧑';
+  const hpMax=90+stats.def*8, mpMax=50+stats.root*6;
+  ME={ uid, name, sect, talent, av, lv:1, rep:0, wins:0, losses:0, stats,
+    skills:['pingzhang','roujin','shenxing','yungong','gedang'],
+    hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax };
+  // upsert 到 jh_players
+  await sb.from('jh_players').upsert({ auth_uid:uid, name, sect, av, lv:1, rep:0, wins:0, losses:0,
+    stats, skills:ME.skills, hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax, is_bot:false, last_seen:new Date().toISOString() });
+  saveLocal();
+  curSect=sect;
+  enterHall();
+}
+
+// ============ 江湖大厅 ============
+let msgChan=null, playerChan=null, heartbeatTimer=null;
+function enterHall(){
+  renderMe();
+  renderSectTabs();
+  goScene('hall');
+  switchSect(curSect);
+  startHeartbeat();
+  subscribePlayers();
+  ensureBots();
+}
+function renderMe(){
+  $('#meAv').textContent=ME.av; $('#meName').textContent=ME.name;
+  $('#meTitle').textContent=ME.rep>=100?'· 一方豪杰':'';
+  $('#meMeta').textContent=`${SECTS[ME.sect].nm} · 威望 ${ME.rep} · ${ME.wins}胜${ME.losses}负`;
+}
+function renderSectTabs(){
+  $('#sectTabs').innerHTML=SECT_ORDER.map(id=>`<div class="sect-tab ${id===curSect?'on':''}" data-sect="${id}">${SECTS[id].ic} ${SECTS[id].nm}</div>`).join('');
+  $('#sectTabs').querySelectorAll('.sect-tab').forEach(el=>el.onclick=()=>switchSect(el.dataset.sect));
+}
+async function switchSect(sect){
+  curSect=sect; renderSectTabs();
+  // 订阅该厅消息
+  if(msgChan){ await sb.removeChannel(msgChan); msgChan=null; }
+  $('#chat').innerHTML='<div class="tiny center" style="padding:20px">传音载入中…</div>';
+  await loadMessages(sect);
+  await refreshHeroes(sect);
+  msgChan=sb.channel('jh-msg:'+sect)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'jh_messages',filter:'sect=eq.'+sect}, p=>{
+      appendMsg(p.new);
+    }).subscribe(st=>{ $('#connDot').classList.toggle('live', st==='SUBSCRIBED'); });
+}
+async function loadMessages(sect){
+  const { data }=await sb.from('jh_messages').select('*').eq('sect',sect).order('id',{ascending:false}).limit(40);
+  const rows=(data||[]).reverse();
+  $('#chat').innerHTML='';
+  if(!rows.length){ $('#chat').innerHTML='<div class="msg sys"><span class="m-txt">此厅暂无人语，来传第一声音。</span></div>'; }
+  rows.forEach(m=>appendMsg(m,true));
+  scrollChat();
+}
+function appendMsg(m, noScroll){
+  const chat=$('#chat');
+  if(chat.querySelector('.msg.sys') && chat.children.length===1) chat.innerHTML='';
+  const isMe=m.user_id===ME.uid;
+  if(m.kind==='sys'){ const d=document.createElement('div'); d.className='msg sys'; d.innerHTML=`<span class="m-txt">${esc(m.text)}</span>`; chat.appendChild(d); }
+  else{
+    const d=document.createElement('div'); d.className='msg'+(isMe?' me':'');
+    d.innerHTML=`<div class="m-av">${esc(m.av||'🧑')}</div><div class="m-body">
+      <div class="m-nm">${esc(m.name||'无名')}${m.is_bot?'<span class="bot">江湖客</span>':''}</div>
+      <div class="m-txt">${esc(m.text)}</div></div>`;
+    chat.appendChild(d);
   }
-  // 未入门 → 选门派
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>拜入门派</h2></div>
-    <div class="tiny center" style="margin-bottom:12px">择一门派，习其武学，积累声望参悟绝技。</div>
-    ${Object.keys(SECTS).map(id=>{const s=SECTS[id];return `<div class="scroll-card" style="margin-bottom:10px;cursor:pointer" data-sect="${id}">
-      <div style="font-size:17px;font-weight:700">${s.ic} ${s.nm} <span class="tiny" style="color:var(--dim)">${s.tag}</span></div>
-      <div class="tiny mt" style="color:var(--sub)">${s.desc}</div>
-      <div class="tiny mt">入门武学：${SKILLS[s.skill].nm}</div></div>`;}).join('')}`);
-  $('#subContent').querySelectorAll('[data-sect]').forEach(el=>el.onclick=()=>{
-    const id=el.dataset.sect, s=SECTS[id];
-    if(!confirm(`拜入${s.nm}？`)) return;
-    G.sect=id; grantSkill(s.skill);
-    Object.keys(s.stat||{}).forEach(k=>G.stats[k]+=s.stat[k]);
-    recalcDerived(); addLog(`你拜入${s.nm}，习得${SKILLS[s.skill].nm}。`); save();
-    toast('拜入'+s.nm+'！'); JH_SYS.sect();
+  if(!noScroll) scrollChat();
+}
+function scrollChat(){ const c=$('#chat'); c.scrollTop=c.scrollHeight; }
+
+// 发传音
+async function sendMsg(){
+  const ipt=$('#msgIpt'); const text=ipt.value.trim(); if(!text) return;
+  ipt.value='';
+  const row={ sect:curSect, user_id:ME.uid, name:ME.name, av:ME.av, is_bot:false, kind:'msg', text };
+  appendMsg({...row}, false);   // 乐观上屏
+  const { error }=await sb.from('jh_messages').insert(row);
+  if(error){ console.warn(error); toast('传音失败'); }
+}
+$('#sendBtn').onclick=sendMsg;
+$('#msgIpt').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendMsg(); } });
+
+// 在线群侠(近40秒有心跳的玩家)
+async function refreshHeroes(sect){
+  const since=new Date(Date.now()-45000).toISOString();
+  const { data }=await sb.from('jh_players').select('auth_uid,name,av,sect,lv,rep,is_bot,last_seen').gte('last_seen',since).order('rep',{ascending:false}).limit(30);
+  let list=(data||[]);
+  // 优先本厅的, 再补其他
+  list.sort((a,b)=> (a.sect===sect?-1:0)-(b.sect===sect?-1:0));
+  const box=$('#heroes');
+  box.innerHTML = list.length? list.map(p=>{
+    const isMe=p.auth_uid===ME.uid;
+    return `<div class="hero-pav ${isMe?'me':''}" data-uid="${p.auth_uid}" data-nm="${esc(p.name)}">
+      <div class="hp-av">${esc(p.av||'🧑')}${p.is_bot?'<span class="hp-bot">客</span>':''}</div>
+      <div class="hp-nm">${isMe?'你':esc(p.name)}</div></div>`;
+  }).join('') : '<div class="tiny">江湖寥落，唯你独行…</div>';
+  box.querySelectorAll('.hero-pav').forEach(el=>el.onclick=()=>{
+    const uid=el.dataset.uid; if(uid===ME.uid){ toast('这是你自己'); return; }
+    onHeroClick(uid, el.dataset.nm);
   });
-};
-function sectTask(){
-  const rep=rnd(2,5), silver=rnd(10,30);
-  G.rep+=rep; G.silver+=silver;
-  const tasks=['清剿了山门外的匪徒','押运了一趟门派镖银','抄录了一卷武学秘要','守了三日山门'];
-  addLog(`为${SECTS[G.sect].nm}${rand(tasks)}，声望+${rep}。`); save();
-  toast(`差事办妥，声望+${rep}，银两+${silver}`);
-  JH_SYS.sect();
+}
+function onHeroClick(uid, nm){
+  // 第三批: 下战书。先占位
+  if(window.JH_DUEL) window.JH_DUEL.challenge(uid,nm);
+  else toast('切磋功能即将开放…');
 }
 
-// ============================================================
-//  奇遇系统: 抉择推进, 影响数值/机缘/招式
-// ============================================================
-const ADVENTURES=[
-  { t:'雨夜古寺', s:'你在破庙避雨，见一蒙面人昏倒在角落，怀中露出半卷发黄的册子。',
-    opts:[
-      {txt:'取走册子', go:()=>{ if(Math.random()<0.5){ return {msg:grantSkillMsg('taiji')+'原来是《太极劲》残卷！',eff:()=>grantSkill('taiji')}; } return {msg:'册子只是寻常拳谱，你随手弃了。'}; }},
-      {txt:'救醒他', go:()=>{ G.rep+=5; return {msg:'蒙面人醒来，感激地塞给你一锭银子便离去。',eff:()=>{G.silver+=rnd(30,60);}}; }},
-      {txt:'悄然离开', go:()=>({msg:'你不愿多事，冒雨离去。'})},
-    ]},
-  { t:'市集卖艺', s:'闹市中一老者摆摊卖艺，自称传授绝学，只收纹银二十。',
-    opts:[
-      {txt:'掏钱学艺(20两)', go:()=>{ if(G.silver<20) return {msg:'囊中羞涩，老者摇头。'}; G.silver-=20; if(Math.random()<0.55){ return {msg:'竟真是高人！'+grantSkillMsg('lingbo'),eff:()=>grantSkill('lingbo')}; } return {msg:'学了几招花架子，权当买个乐子。'}; }},
-      {txt:'拆穿骗局', go:()=>{ G.rep+=3; return {msg:'你当众点破，围观者叫好，江湖名声小涨。'}; }},
-      {txt:'路过不理', go:()=>({msg:'你摇头走开。'})},
-    ]},
-  { t:'悬崖奇遇', s:'追一只灵猴至悬崖，见崖壁石缝中透出微光，似有洞天。',
-    opts:[
-      {txt:'攀崖探洞', go:()=>{ if(Math.random()<0.4){ const st=rand(['atk','agi','root','def']); G.stats[st]+=2; return {msg:`洞中石壁刻满武学心法，你参悟数日，${WUXING.find(w=>w[0]===st)[1]}+2！`}; } G.hp=clamp(G.hp-rnd(10,25),1,G.hpMax); return {msg:'脚下打滑，摔了一跤，气血受损。'}; }},
-      {txt:'作罢下山', go:()=>({msg:'你惜命，转身下山。'})},
-    ]},
-  { t:'路遇镖队', s:'一支镖队遭劫，镖头浴血求援：「好汉相助，必有重谢！」',
-    opts:[
-      {txt:'出手相助', go:()=>({msg:'一场恶斗在所难免！',battle:true})},
-      {txt:'趁乱取财', go:()=>{ G.silver+=rnd(20,50); G.rep-=5; return {msg:'你趁乱摸走一箱银两，但坏了名声。'}; }},
-      {txt:'避而远之', go:()=>({msg:'你不愿卷入，绕道而行。'})},
-    ]},
-  { t:'酒楼论英雄', s:'酒楼里几名江湖客高谈阔论，见你进来，起哄要你露两手。',
-    opts:[
-      {txt:'一展身手', go:()=>{ G.rep+=rnd(3,8); return {msg:'你亮了一手，满座喝彩，声望大涨！'}; }},
-      {txt:'谦逊避让', go:()=>({msg:'你拱手谦让，落个稳重名声。'})},
-      {txt:'买酒同饮', go:()=>{ if(G.silver>=10){ G.silver-=10; G.hp=clamp(G.hp+rnd(10,20),0,G.hpMax); return {msg:'把酒言欢，你听了不少江湖秘闻，气血也回复了些。'}; } return {msg:'囊中无银，只得作罢。'}; }},
-    ]},
-];
-function grantSkillMsg(sid){ return SKILLS[sid]&&!G.skills.includes(sid)?`（似有机缘习得${SKILLS[sid].nm}）`:''; }
-
-window.JH_SYS.adventure = function(){
-  const a=rand(ADVENTURES);
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🎐 ${a.t}</h2></div>
-    <div class="narrate">${a.s}</div>
-    <div class="mt2" id="advOpts">${a.opts.map((o,i)=>`<button class="btn wide" style="margin-bottom:9px" data-opt="${i}">${o.txt}</button>`).join('')}</div>`);
-  $('#advOpts').querySelectorAll('[data-opt]').forEach(el=>el.onclick=()=>{
-    const o=a.opts[+el.dataset.opt];
-    const res=o.go()||{};
-    if(res.eff) try{res.eff();}catch(e){}
-    recalcDerived(); addLog(`【${a.t}】${(res.msg||'').replace(/<[^>]+>/g,'').slice(0,40)}`); save();
-    openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🎐 ${a.t}</h2></div>
-      <div class="narrate">${res.msg||'…'}</div>
-      ${res.battle?`<button class="btn primary wide mt2" id="advFight">拔刀相助</button>`:`<button class="btn wide mt2" onclick="backHome()">离 去</button>`}`);
-    if(res.battle){ $('#advFight').onclick=()=>{ const f=spawnFoe(); f.name='劫镖悍匪'; f.av='😈'; startBattle(f); }; }
-  });
-};
-
-// ============================================================
-//  江湖纪事(story)
-// ============================================================
-window.JH_SYS.story = function(){
-  const logs=(G.log||[]).slice(0,40);
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🪷 江湖纪事</h2></div>
-    <div class="scroll-card">
-      <div style="font-size:16px;font-weight:700;margin-bottom:4px">${esc(G.name)}${G.title?' · '+esc(G.title):''}</div>
-      <div class="tiny" style="color:var(--sub)">${SECT_NAME(G.sect)||'散人'} · 第${G.lv}重 · 声望${G.rep}</div>
-    </div>
-    <div class="mt2">${logs.length?logs.map(l=>`<div style="padding:8px 2px;border-bottom:1px solid var(--line);font-size:13.5px">${esc(l.txt)}</div>`).join(''):'<div class="tiny center">江湖路才刚起步…</div>'}</div>`);
-};
-
-// ============================================================
-//  副本系统: 多波敌人闯关, 通关得稀有武功
-// ============================================================
-const DUNGEONS=[
-  {id:'heifeng', nm:'黑风寨', ic:'🏔️', lv:3, waves:3, tag:'剿灭山贼头目',
-    foes:['山贼','山贼','黑风寨主'], boss:{name:'黑风寨主',av:'👺',skills:['pingzhang','kuangfeng','gedang','yungong'],drop:'kuangfeng'},
-    reward:{silver:120,exp:60,drop:'kuangfeng'}},
-  {id:'cangjing', nm:'藏经阁', ic:'📚', lv:6, waves:3, tag:'夺回被盗武学',
-    foes:['守阁僧','守阁僧','盗经贼首'], boss:{name:'盗经贼首',av:'🥷',skills:['shenxing','lingbo','wandu','yungong'],drop:'wandu'},
-    reward:{silver:220,exp:120,drop:'wandu'}},
-  {id:'moujiao', nm:'魔教总坛', ic:'🔥', lv:10, waves:4, tag:'挑战魔教长老',
-    foes:['魔教众','魔教众','护法','魔教长老'], boss:{name:'魔教长老',av:'😈',skills:['kuangfeng','jiuyin','gedang','yungong'],drop:'jiuyin'},
-    reward:{silver:400,exp:260,drop:'jiuyin'}},
-];
-let DG=null;   // 当前副本进度
-window.JH_SYS.dungeon = function(){
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🏔️ 副本</h2></div>
-    <div class="tiny center" style="margin-bottom:12px">多波恶战，通关得稀有武学。量力而行。</div>
-    ${DUNGEONS.map(d=>{const locked=G.lv<d.lv-2; return `<div class="scroll-card" style="margin-bottom:10px;${locked?'opacity:.5':'cursor:pointer'}" ${locked?'':`data-dg="${d.id}"`}>
-      <div style="font-size:17px;font-weight:700">${d.ic} ${d.nm} <span class="tiny" style="color:var(--dim)">建议第${d.lv}重</span></div>
-      <div class="tiny mt" style="color:var(--sub)">${d.tag} · ${d.waves}波 · 通关得 ${SKILLS[d.reward.drop].nm}</div>
-      ${locked?'<div class="tiny mt" style="color:var(--red)">修为不足，暂难问鼎</div>':''}</div>`;}).join('')}`);
-  $('#subContent').querySelectorAll('[data-dg]').forEach(el=>el.onclick=()=>startDungeon(el.dataset.dg));
-};
-function startDungeon(id){
-  const d=DUNGEONS.find(x=>x.id===id); if(!d) return;
-  if(G.hp<G.hpMax*0.5){ if(!confirm('气血不足五成，仍要进副本？')) return; }
-  DG={id, d, wave:0};
-  nextDungeonWave();
+// 心跳(刷 last_seen + 定时刷群侠)
+function startHeartbeat(){
+  clearInterval(heartbeatTimer);
+  const beat=async()=>{ try{ await sb.from('jh_players').update({last_seen:new Date().toISOString()}).eq('auth_uid',ME.uid); }catch(e){}
+    refreshHeroes(curSect); };
+  beat();
+  heartbeatTimer=setInterval(beat, 15000);
 }
-function nextDungeonWave(){
-  const d=DG.d;
-  if(DG.wave>=d.waves){ return finishDungeon(); }
-  const isBoss=(DG.wave===d.waves-1);
-  const foeNm=d.foes[DG.wave]||'守卫';
-  const lv=d.lv+DG.wave;
-  let foe;
-  if(isBoss){
-    const b=d.boss;
-    foe={ name:b.name, av:b.av, lv:lv+1, hp:90+lv*30, mp:50+lv*10, atk:8+lv*2.5, def:6+lv*2, agi:5+lv*1.6,
-      skills:b.skills, exp:0, silver:0, intro:`💀 <span class="who">${b.name}</span>：「不知天高地厚，受死吧！」`,
-      winText:'', // 通关统一结算
-      onWin:()=>{ DG.wave++; setTimeout(dungeonWaveCleared,50); },
-      onLose:()=>{ DG=null; } };
-  } else {
-    foe={ name:foeNm, av:'🥷', lv, hp:55+lv*20, mp:25+lv*7, atk:5+lv*2, def:4+lv*1.5, agi:4+lv*1.3,
-      skills:['pingzhang','roujin','gedang'], exp:0, silver:0,
-      intro:`第 ${DG.wave+1}/${d.waves} 波 · ${foeNm} 扑上！`,
-      onWin:()=>{ DG.wave++; setTimeout(dungeonWaveCleared,50); },
-      onLose:()=>{ DG=null; } };
-  }
-  startBattle(foe);
+// 订阅玩家变化(有人上线/威望变动 → 刷群侠)
+function subscribePlayers(){
+  if(playerChan) return;
+  playerChan=sb.channel('jh-players')
+    .on('postgres_changes',{event:'*',schema:'public',table:'jh_players'}, ()=>{ refreshHeroesDebounced(); })
+    .subscribe();
 }
-// 每波胜利后: 未完则继续下一波(半回血), 完则结算
-function dungeonWaveCleared(){
-  if(!DG) return;
-  if(DG.wave>=DG.d.waves){ finishDungeon(); return; }
-  G.hp=clamp(G.hp+Math.round(G.hpMax*0.3),0,G.hpMax); G.mp=clamp(G.mp+Math.round(G.mpMax*0.4),0,G.mpMax); save();
-  openSub(`<div class="battle-end win"><div class="be-title" style="font-size:20px">这一波，清了</div>
-    <div class="narrate">稍事喘息，气血回复些许。前方还有恶敌。</div>
-    <div class="mt2"><button class="btn primary wide" id="dgNext">迎战下一波</button>
-    <button class="btn ghost wide mt" onclick="(function(){DG=null;backHome();})()">见好就收(放弃奖励)</button></div></div>`);
-  $('#dgNext').onclick=()=>nextDungeonWave();
-}
-function finishDungeon(){
-  const d=DG.d; DG=null;
-  G.exp+=d.reward.exp; G.silver+=d.reward.silver;
-  let up=[]; while(G.exp>=G.lv*50){ G.exp-=G.lv*50; G.lv++; recalcDerived(); up.push(G.lv); }
-  G.hp=G.hpMax; G.mp=G.mpMax;
-  const dropHtml=grantSkill(d.reward.drop);
-  G.rep+=15;
-  addLog(`你攻克了${d.nm}，声名大振！`); save();
-  openSub(`<div class="battle-end win">
-    <div class="be-title">通 关</div>
-    <div class="narrate">历经${d.waves}波恶战，你攻克了${d.nm}！江湖为之侧目。</div>
-    <div class="mt">经验 <b style="color:var(--red)">+${d.reward.exp}</b> · 银两 <b style="color:var(--red)">+${d.reward.silver}</b> · 声望 <b style="color:var(--red)">+15</b></div>
-    ${up.length?`<div class="mt tiny">修为精进至第 ${G.lv} 重</div>`:''}
-    ${dropHtml}
-    <button class="btn primary wide mt2" onclick="backHome()">凯 旋</button></div>`);
-}
+let _hd=null; function refreshHeroesDebounced(){ if(_hd)return; _hd=setTimeout(()=>{_hd=null;refreshHeroes(curSect);},600); }
 
-// ============================================================
-//  营生系统: 采药/打铁/跑镖 赚银两(有小概率意外)
-// ============================================================
-const WORKS=[
-  {id:'caiyao', nm:'采药', ic:'🌿', tag:'上山采药，运气好遇灵草', base:[8,20], hp:-5,
-    ok:['采得几味草药，卖了些银两。','运气不错，寻到一株好药材！'], luck:{p:0.15,msg:'竟采到百年灵芝，卖了大价钱！',silver:[40,80]}},
-  {id:'datie', nm:'打铁', ic:'🔨', tag:'铁匠铺帮工，稳当', base:[12,22], hp:0,
-    ok:['叮叮当当一日，挣得工钱。','打了一批农具，铺主很满意。'], luck:{p:0.1,msg:'打出一件好兵器，被识货的买走！',silver:[30,60]}},
-  {id:'paobiao', nm:'跑镖', ic:'📦', tag:'押镖走一趟，钱多但有风险', base:[20,40], hp:0,
-    ok:['一路平安，交了镖，领了镖银。'], risk:{p:0.25,msg:'半路杀出劫匪！',battle:true}},
-];
-window.JH_SYS.work = function(){
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>⚒️ 营生</h2></div>
-    <div class="tiny center" style="margin-bottom:12px">江湖漂泊，也要谋生计。银两可买秘籍、疗伤。</div>
-    <div class="res-bar">银两 <b>${G.silver}</b> · 气血 <b>${G.hp}/${G.hpMax}</b></div>
-    ${WORKS.map(w=>`<div class="scroll-card" style="margin-bottom:10px;cursor:pointer" data-work="${w.id}">
-      <div style="font-size:17px;font-weight:700">${w.ic} ${w.nm}</div>
-      <div class="tiny mt" style="color:var(--sub)">${w.tag} · 约 ${w.base[0]}~${w.base[1]} 两</div></div>`).join('')}
-    <div class="mt2 field-label">客栈</div>
-    <div class="scroll-card" style="cursor:pointer" id="restInn">
-      <div style="font-size:16px;font-weight:700">🏮 客栈疗伤 <span class="tiny" style="color:var(--dim)">10两 回满气血内力</span></div></div>`);
-  $('#subContent').querySelectorAll('[data-work]').forEach(el=>el.onclick=()=>doWork(el.dataset.work));
-  $('#restInn').onclick=()=>{ if(G.silver<10){ toast('银两不足'); return; } G.silver-=10; G.hp=G.hpMax; G.mp=G.mpMax; save(); toast('好生歇息，气血尽复。'); JH_SYS.work(); };
-};
-function doWork(id){
-  const w=WORKS.find(x=>x.id===id); if(!w) return;
-  // 跑镖风险: 遇劫匪触发战斗
-  if(w.risk && Math.random()<w.risk.p){
-    addLog(`跑镖途中遇劫！`);
-    openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>⚒️ ${w.nm}</h2></div>
-      <div class="narrate">${w.risk.msg}</div><button class="btn primary wide mt2" id="workFight">应 战</button>`);
-    $('#workFight').onclick=()=>{ const f=spawnFoe(); f.name='拦路劫匪'; f.av='😠'; f.silver=rnd(30,70); startBattle(f); };
-    return;
-  }
-  let silver=rnd(w.base[0],w.base[1]); let msg=rand(w.ok);
-  if(w.luck && Math.random()<w.luck.p){ silver+=rnd(w.luck.silver[0],w.luck.silver[1]); msg=w.luck.msg; }
-  G.silver+=silver;
-  if(w.hp) G.hp=clamp(G.hp+w.hp,1,G.hpMax);
-  addLog(`【${w.nm}】${msg} 得银${silver}两。`); save();
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>⚒️ ${w.nm}</h2></div>
-    <div class="narrate">${msg}</div>
-    <div class="mt center">银两 <b style="color:var(--red)">+${silver}</b>${w.hp?` · 气血 ${w.hp}`:''}</div>
-    <button class="btn primary wide mt2" id="workAgain">再来一趟</button>
-    <button class="btn ghost wide mt" onclick="JH_SYS.work()">歇 手</button>`);
-  $('#workAgain').onclick=()=>doWork(id);
+// AI 江湖客(凑人气, 无真人时也不冷清) —— 简版: 保证每厅有几个 bot 挂着
+const BOT_NAMES=['醉剑生','扫地僧','店小二','卖艺翁','独行客'];
+async function ensureBots(){
+  // 检查是否已有 bot; 没有则补几个(仅本机首次, 幂等靠固定uid规避重复难, 简化: 只读不建, bot由后端预置或跳过)
+  // 第一批先不自动造bot(需service权限), 留接口
 }
-
-// ============================================================
-//  论剑: 江湖榜, 挑战名家高手排名
-// ============================================================
-const ARENA=[
-  {rank:'榜末', name:'快剑李三', av:'🗡️', lv:4, skills:['shenxing','lingbo','yungong']},
-  {rank:'第九', name:'铁掌帮主', av:'🖐️', lv:7, skills:['pingzhang','kuangfeng','gedang','yungong']},
-  {rank:'第五', name:'柔云仙姑', av:'🧝‍♀️', lv:11, skills:['roujin','taiji','liuyun','gedang','yungong']},
-  {rank:'第三', name:'剑魔独孤', av:'⚔️', lv:15, skills:['shenxing','wandu','lingbo','yungong','gedang']},
-  {rank:'榜首', name:'天下第一 · 无名', av:'👑', lv:20, skills:['jiuyin','liuyun','wandu','kuangfeng','yungong','gedang']},
-];
-window.JH_SYS.arena = function(){
-  const beaten=G.flags.arenaBeaten||{};
-  openSub(`<div class="page-head"><span class="back" onclick="backHome()">‹</span><h2>🏆 江湖论剑榜</h2></div>
-    <div class="tiny center" style="margin-bottom:12px">挑战榜上高手，胜则声名鹊起。败者仅伤面子，不失性命。</div>
-    ${ARENA.map((a,i)=>{const done=beaten[a.name]; return `<div class="scroll-card" style="margin-bottom:9px;cursor:pointer" data-arena="${i}">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="cb-av">${a.av}</div>
-        <div style="flex:1"><div style="font-weight:700;font-size:15px">${a.name} ${done?'<span class="seal" style="font-size:10px">已胜</span>':''}</div>
-        <div class="tiny" style="color:var(--dim)">${a.rank} · 第${a.lv}重</div></div>
-        <div class="btn sm">挑战</div></div></div>`;}).join('')}`);
-  $('#subContent').querySelectorAll('[data-arena]').forEach(el=>el.onclick=()=>{
-    const a=ARENA[+el.dataset.arena];
-    if(G.hp<G.hpMax*0.3){ toast('气血过低，先去客栈疗伤'); return; }
-    const foe={ name:a.name, av:a.av, lv:a.lv, hp:80+a.lv*28, mp:50+a.lv*9, atk:7+a.lv*2.3, def:6+a.lv*1.9, agi:5+a.lv*1.6,
-      skills:a.skills, exp:a.lv*10, silver:a.lv*8,
-      intro:`🏆 <span class="who">${a.name}</span>(${a.rank})傲然而立：「来领教阁下高招。」`,
-      winText:`你力克${a.name}，江湖榜上留名！`,
-      onWin:()=>{ G.flags.arenaBeaten=G.flags.arenaBeaten||{}; G.flags.arenaBeaten[a.name]=1; G.rep+=a.lv;
-        if(a.rank==='榜首'){ G.title='天下第一'; addLog('你击败无名，登顶江湖！称号「天下第一」！'); }
-        else addLog(`你在论剑榜击败${a.name}(${a.rank})。`); save(); } };
-    startBattle(foe);
-  });
-};
 
 // ============ 启动 ============
 initEnter();
+$('#rankBtn').onclick=()=>{ if(window.JH_RANK) JH_RANK(); else toast('威望榜即将开放…'); };
+// 页面关闭时尽力下线
+window.addEventListener('beforeunload',()=>{ try{ if(sb&&ME) sb.from('jh_players').update({last_seen:new Date(Date.now()-999999).toISOString()}).eq('auth_uid',ME.uid); }catch(e){} });
 </script>
 </body>
 </html>
