@@ -108,6 +108,47 @@
   .page-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
   .page-head .back{cursor:pointer;font-size:20px;color:var(--sub)} .page-head .back:hover{color:var(--red)}
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:2px}
+
+  /* ===== PK 战斗 ===== */
+  .combatant{background:var(--paper3);border:1px solid var(--line2);border-radius:6px;padding:11px 13px;margin-bottom:10px;transition:.12s}
+  .combatant.hurt{animation:cbHurt .3s}
+  @keyframes cbHurt{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .cb-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .cb-av{width:36px;height:36px;border-radius:7px;display:grid;place-items:center;font-size:20px;flex-shrink:0;background:linear-gradient(180deg,var(--paper),var(--paper2));border:1px solid var(--line2)}
+  .cb-nm{font-weight:700;font-size:15px}
+  .cb-wait{margin-left:auto;font-size:12px;color:var(--sub)}
+  .cb-wait.ready{color:var(--jade)}
+  .bar{height:11px;border-radius:6px;background:rgba(60,45,30,.15);overflow:hidden;position:relative;margin-bottom:4px}
+  .bar>i{display:block;height:100%;border-radius:6px;transition:width .35s cubic-bezier(.3,.8,.3,1)}
+  .bar .bt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--paper3);text-shadow:0 0 2px rgba(0,0,0,.5)}
+  .bar-hp>i{background:linear-gradient(90deg,var(--red-d),var(--red))}
+  .bar-mp{height:7px}.bar-mp>i{background:linear-gradient(90deg,#2c5a7a,#4a86ad)}
+  .bar-st{height:5px}.bar-st>i{background:linear-gradient(90deg,#b8863a,#e0b45a)}
+  .moves{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .move{padding:10px 11px;border:1px solid var(--line2);border-radius:6px;cursor:pointer;transition:.14s;background:linear-gradient(180deg,var(--paper3),var(--paper2));text-align:left;position:relative}
+  .move:hover:not(.disabled){border-color:var(--red);transform:translateY(-1px)}
+  .move.disabled,.move.locked{opacity:.4;cursor:not-allowed}
+  .move .mv-nm{font-weight:700;font-size:14px}
+  .move .mv-sys{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:4px;font-weight:600}
+  .sys-gang{background:rgba(168,50,30,.16);color:var(--red)} .sys-rou{background:rgba(74,124,89,.18);color:var(--jade)}
+  .sys-ling{background:rgba(58,107,140,.16);color:var(--blue)} .sys-special{background:rgba(154,123,63,.2);color:var(--gold)}
+  .move .mv-desc{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.45}
+  .move .mv-cost{position:absolute;top:9px;right:10px;font-size:10px;color:var(--blue)}
+  .battle-log{background:var(--paper3);border:1px solid var(--line);border-radius:5px;padding:9px 12px;margin-top:12px;font-size:13px;line-height:1.7;min-height:48px;max-height:120px;overflow-y:auto}
+  .bl-you{color:var(--red)} .bl-foe{color:var(--blue)} .bl-crit{color:var(--gold);font-weight:700} .bl-break{color:var(--red);font-weight:700}
+  .waiting-tip{text-align:center;color:var(--sub);font-size:13px;padding:6px;font-style:italic}
+  /* 特效 */
+  #fx{position:fixed;inset:0;z-index:150;pointer-events:none;display:flex;align-items:center;justify-content:center}
+  .fx-word{font-size:80px;font-weight:900;color:var(--red);opacity:0;text-shadow:0 0 20px rgba(168,50,30,.6),3px 4px 0 var(--red-d)}
+  .fx-word.go{animation:fxWord .7s cubic-bezier(.2,.9,.3,1.2)}
+  @keyframes fxWord{0%{opacity:0;transform:scale(2.4) rotate(-8deg)}30%{opacity:1;transform:scale(1)}70%{opacity:1}100%{opacity:0}}
+  .shake{animation:screenShake .3s}
+  @keyframes screenShake{0%,100%{transform:none}25%{transform:translate(-4px,3px)}50%{transform:translate(5px,-2px)}75%{transform:translate(-3px,-3px)}}
+  .battle-end{text-align:center;padding:20px 12px}
+  .battle-end .be-title{font-size:26px;font-weight:800;letter-spacing:3px;margin-bottom:8px}
+  .battle-end.win .be-title{color:var(--red)} .battle-end.lose .be-title{color:var(--sub)}
+  .narrate{background:var(--paper3);border-left:3px solid var(--red);padding:11px 14px;border-radius:0 5px 5px 0;font-size:14px;line-height:1.8;margin:12px 0}
+  .narrate .who{color:var(--red);font-weight:700}
 </style>
 </head>
 <body>
@@ -257,6 +298,7 @@ function enterHall(){
   switchSect(curSect);
   startHeartbeat();
   subscribePlayers();
+  watchDuels();   // 监听战书 + 对战更新
   ensureBots();
 }
 function renderMe(){
@@ -364,6 +406,261 @@ async function ensureBots(){
   // 检查是否已有 bot; 没有则补几个(仅本机首次, 幂等靠固定uid规避重复难, 简化: 只读不建, bot由后端预置或跳过)
   // 第一批先不自动造bot(需service权限), 留接口
 }
+
+// ============================================================
+//  武学 + 相克(纯函数, 双端一致)
+// ============================================================
+const SKILLS={
+  pingzhang:{nm:'平常招',sys:'gang',kind:'attack',mp:0,pow:1.0,desc:'不耗内力的一击'},
+  roujin:{nm:'柔劲',sys:'rou',kind:'attack',mp:4,pow:1.0,desc:'以柔卸力'},
+  shenxing:{nm:'身法击',sys:'ling',kind:'attack',mp:4,pow:1.0,desc:'欺身近击'},
+  yungong:{nm:'运功',sys:'none',kind:'charge',mp:0,pow:0,desc:'回内力，下招翻倍'},
+  gedang:{nm:'格挡',sys:'none',kind:'guard',mp:2,pow:0,desc:'减伤，易被身法破'},
+  kuangfeng:{nm:'狂风刀',sys:'gang',kind:'attack',mp:10,pow:1.6,desc:'刚猛破守'},
+  taiji:{nm:'太极劲',sys:'rou',kind:'attack',mp:10,pow:1.6,desc:'四两拨千斤'},
+  lingbo:{nm:'凌波步',sys:'ling',kind:'attack',mp:10,pow:1.6,desc:'飘忽克刚'},
+  jiuyin:{nm:'九阴爪',sys:'gang',kind:'special',mp:24,pow:2.6,desc:'绝招·克制暴涨'},
+  liuyun:{nm:'流云袖',sys:'rou',kind:'special',mp:24,pow:2.6,desc:'绝招·柔中带杀'},
+  wandu:{nm:'万剑归宗',sys:'ling',kind:'special',mp:26,pow:2.8,desc:'绝招·剑气纵横'},
+};
+const SYS_LABEL={gang:'刚',rou:'柔',ling:'灵',none:'—'};
+const SYS_CLS={gang:'sys-gang',rou:'sys-rou',ling:'sys-ling'};
+function sysWin(a,b){ if(a===b||a==='none'||b==='none')return 0; const beat={gang:'rou',rou:'ling',ling:'gang'}; if(beat[a]===b)return 1; if(beat[b]===a)return -1; return 0; }
+
+// 由玩家资料算战斗属性
+function fighterFrom(p){
+  const s=p.stats||{atk:5,agi:5,root:5,def:5,luck:5};
+  return { name:p.name, av:p.av||'🧑', skills:p.skills||['pingzhang','roujin','shenxing','yungong','gedang'],
+    hp:p.hp_max||100, hpMax:p.hp_max||100, mp:p.mp_max||60, mpMax:p.mp_max||60,
+    atk:8+s.atk*2, def:6+s.def*1.5, agi:5+s.agi*1.6, stance:0, stanceMax:100, charged:false, guarding:false };
+}
+// 结算一回合(挑战者端执行, 纯函数改 state)。返回 {log:[], cHp, oHp, ...}
+function resolveTurn(st, cMove, oMove){
+  // st.c / st.o 是双方战斗态
+  const C=st.c, O=st.o;
+  const cs=SKILLS[cMove]||SKILLS.pingzhang, os=SKILLS[oMove]||SKILLS.pingzhang;
+  C.mp=clamp(C.mp-cs.mp,0,C.mpMax); O.mp=clamp(O.mp-os.mp,0,O.mpMax);
+  C.guarding=(cs.kind==='guard'); O.guarding=(os.kind==='guard');
+  const logs=[];
+  const cAtk=(cs.kind==='attack'||cs.kind==='special'), oAtk=(os.kind==='attack'||os.kind==='special');
+  if(cs.kind==='charge'){ C.mp=clamp(C.mp+18,0,C.mpMax); C.charged=true; logs.push({s:'c',t:`${C.name}运功蓄势，内力回涌。`}); }
+  if(os.kind==='charge'){ O.mp=clamp(O.mp+18,0,O.mpMax); O.charged=true; logs.push({s:'o',t:`${O.name}凝气待发。`}); }
+  const hit=(atk,def,aS,dS,who)=>{
+    let dmg=atk.atk*aS.pow; if(atk.charged)dmg*=2;
+    const rel=sysWin(aS.sys,dS.sys); let mark='';
+    if(rel>0){dmg*=1.6;mark='破！';} else if(rel<0)dmg*=0.6;
+    let red=def.def*0.5; if(def.guarding)red+=def.def*1.2;
+    let brk=''; if(def.guarding&&aS.sys==='ling'){red*=0.2;brk='身法破防！';}
+    dmg=Math.max(3,dmg-red);
+    let crit=false; if(aS.kind==='special'&&rel>=0){dmg*=1.35;crit=true;}
+    if(atk.hp<atk.hpMax*0.25)dmg*=1.2;
+    dmg=Math.round(dmg); def.hp=clamp(def.hp-dmg,0,def.hpMax);
+    def.stance=clamp(def.stance+(rel<0?8:16)+(crit?14:0),0,def.stanceMax);
+    let exec=''; if(def.stance>=def.stanceMax){def.stance=0;const ex=Math.round(def.hpMax*0.12);def.hp=clamp(def.hp-ex,0,def.hpMax);exec=`（架势崩溃+${ex}）`;}
+    logs.push({s:who, crit, rel, t:`${atk.name}施展<b>${aS.nm}</b>${mark||brk} 伤${dmg}${exec}`});
+  };
+  if(cAtk)hit(C,O,cs,os,'c');
+  if(oAtk&&O.hp>0)hit(O,C,os,cs,'o');
+  if(cAtk)C.charged=false; if(oAtk)O.charged=false;
+  st.turn=(st.turn||0)+1;
+  return logs;
+}
+// 敌人/AI托管出招
+function aiPick(f){
+  const usable=f.skills.filter(s=>SKILLS[s]&&f.mp>=SKILLS[s].mp);
+  const sp=usable.filter(s=>SKILLS[s].kind==='special');
+  if(sp.length&&f.mp>=24&&Math.random()<0.4)return rand(sp);
+  if(f.mp<8&&f.skills.includes('yungong')&&Math.random()<0.6)return 'yungong';
+  const atks=usable.filter(s=>SKILLS[s].kind==='attack'); return atks.length?rand(atks):(usable[0]||'pingzhang');
+}
+function fxWord(w){let fx=$('#fx');if(!fx){fx=document.createElement('div');fx.id='fx';document.body.appendChild(fx);}const el=document.createElement('div');el.className='fx-word';el.textContent=w;fx.innerHTML='';fx.appendChild(el);void el.offsetWidth;el.classList.add('go');setTimeout(()=>el.remove(),750);}
+function screenShake(){const w=document.querySelector('.wrap');w.classList.add('shake');setTimeout(()=>w.classList.remove('shake'),300);}
+
+// ============================================================
+//  真人实时 PK: jh_duels 撮合 + 回合同步
+//  角色: 挑战者(challenger)=结算方; 应战者(opponent)=只提交出招
+// ============================================================
+let DUEL=null;         // {id, role:'c'|'o', st, foeName, foeAv, chan, myMoveSubmitted}
+let duelWatchChan=null; // 监听别人对我的战书
+
+// 监听有人向我下战书
+function watchDuels(){
+  if(duelWatchChan) return;
+  duelWatchChan=sb.channel('jh-duel-watch')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'jh_duels',filter:'opponent=eq.'+ME.uid}, p=>{
+      const d=p.new; if(d.status==='pending') incomingChallenge(d);
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'jh_duels'}, p=>{
+      if(DUEL && p.new.id===DUEL.id) onDuelUpdate(p.new);
+    })
+    .subscribe();
+}
+// 收到战书
+function incomingChallenge(d){
+  showModal(`<div class="center"><div style="font-size:34px">⚔️</div>
+    <h2 style="font-size:20px;margin:8px 0">${esc(d.challenger_name)} 向你下了战书！</h2>
+    <div class="tiny" style="margin-bottom:16px">应战则实时过招，回避不失威望。</div>
+    <button class="btn primary wide" id="acceptDuel">接下战书</button>
+    <button class="btn ghost wide mt" id="declineDuel">回避</button></div>`);
+  $('#acceptDuel').onclick=()=>acceptDuel(d);
+  $('#declineDuel').onclick=async()=>{ await sb.from('jh_duels').update({status:'declined'}).eq('id',d.id); hideModal(); };
+  // 15秒未应答自动回避
+  setTimeout(()=>{ if($('#modalMask').classList.contains('on')&&$('#acceptDuel')){ $('#declineDuel')?.click(); } },15000);
+}
+window.JH_DUEL={
+  // 下战书
+  challenge:async(uid,nm)=>{
+    // 拉对方资料
+    const { data:foe }=await sb.from('jh_players').select('*').eq('auth_uid',uid).maybeSingle();
+    if(!foe){ toast('此人已离去'); return; }
+    const me=await myPlayerRow();
+    // 建初始 state
+    const c=fighterFrom(me), o=fighterFrom(foe);
+    const state={ c, o, turn:0 };
+    const { data, error }=await sb.from('jh_duels').insert({
+      challenger:ME.uid, challenger_name:ME.name, opponent:uid, opponent_name:nm,
+      status:'pending', turn:0, state, log:[] }).select('id').single();
+    if(error){ console.warn(error); toast('下战书失败'); return; }
+    DUEL={ id:data.id, role:'c', st:state, foeName:nm, foeAv:foe.av, submitted:false, foeIsBot:!!foe.is_bot };
+    showWaitAccept(nm, foe.is_bot);
+    // 若对方是 bot, 直接自动应战
+    if(foe.is_bot){ setTimeout(()=>{ sb.from('jh_duels').update({status:'active'}).eq('id',data.id); },800); }
+  }
+};
+async function myPlayerRow(){ const { data }=await sb.from('jh_players').select('*').eq('auth_uid',ME.uid).maybeSingle(); return data||{name:ME.name,av:ME.av,stats:ME.stats,skills:ME.skills,hp_max:ME.hp_max,mp_max:ME.mp_max}; }
+function showWaitAccept(nm,isBot){
+  openSub(`<div class="page-head"><span class="back" id="cancelChal">‹</span><h2>下战书</h2></div>
+    <div class="narrate">你向 <span class="who">${esc(nm)}</span> 下了战书，${isBot?'对方正走近…':'静候应战…'}</div>
+    <div class="waiting-tip">等待对方接招(30秒内)</div>`);
+  $('#cancelChal').onclick=async()=>{ if(DUEL){ await sb.from('jh_duels').update({status:'declined'}).eq('id',DUEL.id); DUEL=null; } backHall(); };
+  goScene('sub');
+  // 30秒无人应 → 取消
+  setTimeout(()=>{ if(DUEL&&DUEL.role==='c'&&DUEL.st.turn===0&&$('#cancelChal')){ toast('对方未应战'); $('#cancelChal').click(); } },30000);
+}
+async function acceptDuel(d){
+  hideModal();
+  const state=d.state;
+  DUEL={ id:d.id, role:'o', st:state, foeName:d.challenger_name, foeAv:(state.c&&state.c.av)||'🧑', submitted:false };
+  await sb.from('jh_duels').update({status:'active'}).eq('id',d.id);
+  renderDuel();
+  goScene('sub');
+}
+// duel 行更新 → 双方据此推进
+function onDuelUpdate(d){
+  if(!DUEL) return;
+  if(d.status==='declined'){ if(DUEL.role==='c'){ toast(DUEL.foeName+' 回避了'); DUEL=null; backHall(); } return; }
+  if(d.status==='active' && DUEL.role==='c' && DUEL.st.turn===0 && !DUEL.started){ DUEL.started=true; renderDuel(); goScene('sub'); }
+  if(d.status==='done'){ DUEL.st=d.state; DUEL.finalLog=d.log;
+    const iWin=d.winner===ME.uid;
+    // 应战方在此记自己战绩(挑战方在 settleTurn→recordDuelResult 已记)
+    if(DUEL.role==='o' && !DUEL._recorded){ DUEL._recorded=true; recordDuelResult(iWin); }
+    else { showDuelEnd(iWin); }
+    return; }
+  // 同步 state + log(应战方靠这个更新画面)
+  if(d.status==='active'){
+    DUEL.st=d.state;
+    if(d.log) DUEL.lastLog=d.log;
+    // 应战方: 清空本地submitted以便下回合出招; 挑战方结算后也在此刷新
+    if(d.c_move===null && d.o_move===null){ DUEL.submitted=false; }
+    renderDuel();
+    // 挑战者是结算方: 若双方move都到齐, 结算
+    if(DUEL.role==='c' && d.c_move && d.o_move){ settleTurn(d); }
+    // 应战方等待挑战方结算
+  }
+}
+// 挑战者结算一回合
+async function settleTurn(d){
+  const st=d.state;
+  const logs=resolveTurn(st, d.c_move, d.o_move);
+  // 判胜负
+  let status='active', winner=null;
+  if(st.o.hp<=0 && st.c.hp<=0){ status='done'; winner=(st.c.hp>=st.o.hp?ME.uid:d.opponent); }
+  else if(st.o.hp<=0){ status='done'; winner=ME.uid; }
+  else if(st.c.hp<=0){ status='done'; winner=d.opponent; }
+  await sb.from('jh_duels').update({ state:st, log:logs, c_move:null, o_move:null, turn:st.turn, status, winner, updated_at:new Date().toISOString() }).eq('id',d.id);
+  DUEL.st=st; DUEL.lastLog=logs; DUEL.submitted=false;
+  if(status==='done'){ recordDuelResult(winner===ME.uid); }
+  else{ renderDuel(); playTurnFx(logs); }
+}
+function playTurnFx(logs){
+  (logs||[]).forEach(l=>{ if(l.crit||l.rel>0) fxWord(l.crit?'绝':'破'); });
+  screenShake();
+  const meHurt=(logs||[]).some(l=> (DUEL.role==='c'?l.s==='o':l.s==='c'));
+  if(meHurt){ const c=$('#cb-me'); if(c){c.classList.add('hurt');setTimeout(()=>c.classList.remove('hurt'),300);} }
+}
+
+// 出招(双方通用)
+async function duelMove(sid){
+  if(!DUEL||DUEL.submitted) return;
+  const my = DUEL.role==='c'?DUEL.st.c:DUEL.st.o;
+  const s=SKILLS[sid]; if(!s||my.mp<s.mp){ toast('内力不足'); return; }
+  DUEL.submitted=true;
+  const field=DUEL.role==='c'?'c_move':'o_move';
+  await sb.from('jh_duels').update({[field]:sid, updated_at:new Date().toISOString()}).eq('id',DUEL.id);
+  renderDuel();
+  // 若对手是 bot(仅挑战者遇 bot 场景): 挑战者代 bot 出招并结算
+  if(DUEL.role==='c' && DUEL.foeIsBot){
+    const bm=aiPick(DUEL.st.o);
+    const { data:fresh }=await sb.from('jh_duels').select('*').eq('id',DUEL.id).maybeSingle();
+    if(fresh){ fresh.o_move=bm; fresh.c_move=sid; await settleTurn(fresh); }
+  }
+}
+// 渲染战斗
+function renderDuel(){
+  const st=DUEL.st; const meF=DUEL.role==='c'?st.c:st.o, foeF=DUEL.role==='c'?st.o:st.c;
+  const bar=(cls,cur,max,txt)=>`<div class="bar ${cls}"><i style="width:${clamp(cur/max*100,0,100)}%"></i>${txt?`<span class="bt">${txt}</span>`:''}</div>`;
+  const cb=(f,who,waitReady)=>`<div class="combatant" id="cb-${who}">
+    <div class="cb-top"><div class="cb-av">${f.av}</div><div class="cb-nm">${esc(f.name)}</div>
+      <div class="cb-wait ${waitReady?'ready':''}">${who==='foe'?(waitReady?'● 已出招':'○ 思量中'):''}</div></div>
+    ${bar('bar-hp',f.hp,f.hpMax,`气血 ${Math.ceil(f.hp)}/${f.hpMax}`)}
+    ${bar('bar-mp',f.mp,f.mpMax,'')}${bar('bar-st',f.stance,f.stanceMax,'')}</div>`;
+  const foeMoved = DUEL.role==='c'? !!DUEL._oMove : !!DUEL._cMove; // 粗略
+  const moves=meF.skills.map(sid=>{const s=SKILLS[sid];if(!s)return'';const can=meF.mp>=s.mp&&!DUEL.submitted;
+    const tag=s.kind==='special'?'sys-special':(SYS_CLS[s.sys]||''); const lb=s.kind==='special'?'绝':SYS_LABEL[s.sys];
+    return `<div class="move ${can?'':'disabled'}" data-skill="${sid}"><div class="mv-nm">${s.nm}${lb!=='—'?`<span class="mv-sys ${tag}">${lb}</span>`:''}</div>${s.mp?`<span class="mv-cost">${s.mp}</span>`:''}<div class="mv-desc">${s.desc}</div></div>`;}).join('');
+  const logHtml=(DUEL.lastLog||[]).map(l=>{const cls=(DUEL.role==='c'?l.s==='c':l.s==='o')?'bl-you':'bl-foe';return `<div class="${cls}">${l.t}</div>`;}).join('')||'<span class="tiny">见招拆招…</span>';
+  openSub(`<div class="battle">
+    <div class="page-head"><span class="back" id="duelFlee">‹</span><h2>过招 · 第${st.turn+1}回合</h2></div>
+    ${cb(foeF,'foe', DUEL.submitted && false)}
+    ${cb(meF,'me')}
+    <div class="battle-log">${logHtml}</div>
+    ${DUEL.submitted?'<div class="waiting-tip">已出招，静待对方…</div>':`<div class="moves" id="duelMoves">${moves}</div>`}
+  </div>`);
+  goScene('sub');
+  if(!DUEL.submitted){ $('#duelMoves')?.querySelectorAll('.move:not(.disabled)').forEach(el=>el.onclick=()=>duelMove(el.dataset.skill)); }
+  $('#duelFlee').onclick=()=>fleeDuel();
+}
+async function fleeDuel(){
+  if(!DUEL) return;
+  if(!confirm('认输离场？记一负。')) return;
+  await sb.from('jh_duels').update({status:'done', winner:(DUEL.role==='c'?DUEL.st.o&&null:null)}).eq('id',DUEL.id).catch(()=>{});
+  // 简化: 逃即判负
+  recordDuelResult(false, true);
+}
+function showDuelEnd(win){
+  const foe=DUEL.foeName;
+  openSub(`<div class="battle-end ${win?'win':'lose'}">
+    <div class="be-title">${win?'胜':'败'}</div>
+    <div class="narrate">${win?`你力克 <span class="who">${esc(foe)}</span>，江湖扬名！`:`不敌 ${esc(foe)}，回去再练。`}</div>
+    <button class="btn primary wide mt2" onclick="backHall()">回江湖</button></div>`);
+  goScene('sub');
+  DUEL=null;
+}
+// 记录战绩(赢/输)
+async function recordDuelResult(win, fled){
+  const me=await myPlayerRow();
+  const patch={};
+  if(win){ patch.wins=(me.wins||0)+1; patch.rep=(me.rep||0)+rnd(5,12); ME.rep=patch.rep; ME.wins=patch.wins; }
+  else{ patch.losses=(me.losses||0)+1; ME.losses=patch.losses; }
+  await sb.from('jh_players').update(patch).eq('auth_uid',ME.uid);
+  renderMe();
+  showDuelEnd(win);
+  // 广播战报到当前门派厅(supabase insert 是 thenable, 用 await/try 而非 .catch)
+  if(win){ try{ await sb.from('jh_messages').insert({sect:curSect,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${ME.name} 击败了 ${DUEL?DUEL.foeName:'对手'}！`}); }catch(e){} }
+}
+
+function backHall(){ renderMe(); refreshHeroes(curSect); goScene('hall'); }
+function openSub(html){ $('#subContent').innerHTML=html; }
 
 // ============ 启动 ============
 initEnter();
