@@ -1055,6 +1055,37 @@ function startXiaoer(){
   setTimeout(()=>appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(['客官里边请~','又来了位少侠，快请坐！','店里新到一坛女儿红，尝尝?'])},false), 1200);
 }
 
+// ============================================================
+//  秘籍书铺: 银两买武学(跨门派秘籍), 扩充武学来源
+// ============================================================
+const SHOP_BOOKS=[
+  {sid:'kuangfeng', price:60, tag:'外门刀法'},
+  {sid:'jiuyin', price:180, tag:'至阴绝学·慎习'},
+  {sid:'liuyun', price:160, tag:'柔劲绝招'},
+  // 别派入门招也可花钱偷学(散人尤其需要)
+  {sid:'luohan', price:40, tag:'少林拳法'},
+  {sid:'tiyun', price:40, tag:'武当身法'},
+  {sid:'feihua', price:40, tag:'峨眉剑法'},
+  {sid:'dagou', price:40, tag:'丐帮棒法'},
+];
+window.openShop=function(){
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:4px">📖 秘籍书铺</div>
+    <div class="tiny" style="margin-bottom:10px">银两 <b style="color:var(--red)">${ME.silver||0}</b> · 购来的秘籍即刻入你武学</div>
+    ${SHOP_BOOKS.map(b=>{const s=SKILLS[b.sid];if(!s)return'';const owned=ME.skills.includes(b.sid);const lb=s.kind==='special'?'绝':SYS_LABEL[s.sys];const tag=s.kind==='special'?'sys-special':(SYS_CLS[s.sys]||'');
+      return `<div class="scroll-card" style="margin-bottom:7px;display:flex;align-items:center;gap:9px">
+        <div style="flex:1"><div style="font-weight:700">${s.nm}<span class="mv-sys ${tag}" style="margin-left:5px">${lb}</span> <span class="tiny" style="color:var(--dim)">${b.tag}</span></div>
+        <div class="tiny" style="color:var(--dim)">${s.desc}</div></div>
+        ${owned?'<span class="tiny" style="color:var(--jade)">已习</span>':`<button class="btn sm" data-book="${b.sid}" data-price="${b.price}">${b.price}两</button>`}</div>`;}).join('')}
+    <button class="btn ghost wide mt" onclick="hideModal()">离开</button></div>`);
+  document.querySelectorAll('[data-book]').forEach(el=>el.onclick=async()=>{
+    const sid=el.dataset.book, price=+el.dataset.price;
+    if((ME.silver||0)<price){ toast('银两不足'); return; }
+    ME.silver-=price; ME.skills.push(sid);
+    await sb.from('jh_players').update({silver:ME.silver,skills:ME.skills}).eq('auth_uid',ME.uid);
+    renderMe(); toast(`习得秘籍：${SKILLS[sid].nm}！`); openShop();
+  });
+};
+
 // ============ 启动 ============
 initEnter();
 $('#rankBtn').onclick=()=>{ if(window.JH_RANK) JH_RANK(); else toast('威望榜即将开放…'); };
