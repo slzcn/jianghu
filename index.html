@@ -66,6 +66,15 @@
   .conn-dot.live{background:var(--jade);box-shadow:0 0 6px var(--jade)}
 
   /* 门派分厅切换 */
+  .ops-bar{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;padding-bottom:2px}
+  .ops-bar .op{flex-shrink:0;padding:6px 11px;border-radius:6px;border:1px solid var(--line2);background:var(--paper3);cursor:pointer;font-size:12.5px;white-space:nowrap;transition:.14s}
+  .ops-bar .op:hover{border-color:var(--red);color:var(--red)}
+  .ops-bar .op.active{background:var(--jade);color:var(--paper3);border-color:var(--jade)}
+  /* 打坐 */
+  .meditate-box{text-align:center;padding:10px}
+  .meditate-orb{font-size:56px;display:inline-block;animation:medBreath 3s ease-in-out infinite}
+  @keyframes medBreath{0%,100%{transform:scale(1);filter:drop-shadow(0 0 4px rgba(74,124,89,.4))}50%{transform:scale(1.08);filter:drop-shadow(0 0 16px rgba(74,124,89,.8))}}
+  .med-gain{font-size:13px;color:var(--jade);margin-top:8px}
   .sect-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
   .sect-tab{flex-shrink:0;padding:7px 13px;border-radius:16px;border:1px solid var(--line2);background:var(--paper3);cursor:pointer;font-size:13px;white-space:nowrap;transition:.14s}
   .sect-tab.on{background:var(--red);color:var(--paper3);border-color:var(--red-d)}
@@ -181,6 +190,12 @@
       </div>
       <span class="btn sm ghost" id="rankBtn">威望榜</span>
     </div>
+    <div class="ops-bar" id="opsBar">
+      <span class="op" id="opMeditate">🧘 打坐练功</span>
+      <span class="op" id="opElixir">💊 丹药铺</span>
+      <span class="op" id="opFeud">📜 恩怨录</span>
+      <span class="op" id="opMaster">👤 师徒</span>
+    </div>
     <div class="sect-tabs" id="sectTabs"></div>
     <div class="tiny" style="margin:2px 0 4px;color:var(--sub)">在此地的群侠(点击可下战书)：</div>
     <div class="heroes" id="heroes"></div>
@@ -278,14 +293,28 @@ async function enterJianghu(name, sect, talent){
   Object.keys(t.dist).forEach(k=>stats[k]+=t.dist[k]);
   const av=({gang:'🗡️',rou:'🧘',ling:'🥷',qi:'🧙'})[talent]||'🧑';
   const hpMax=90+stats.def*8, mpMax=50+stats.root*6;
-  ME={ uid, name, sect, talent, av, lv:1, rep:0, wins:0, losses:0, stats,
-    skills:['pingzhang','roujin','shenxing','yungong','gedang'],
-    hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax };
-  // upsert 到 jh_players
-  await sb.from('jh_players').upsert({ auth_uid:uid, name, sect, av, lv:1, rep:0, wins:0, losses:0,
-    stats, skills:ME.skills, hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax, is_bot:false, last_seen:new Date().toISOString() });
+  // 先看是否已有存档(同一 auth uid 再进来 → 加载, 不重置)
+  const { data:exist }=await sb.from('jh_players').select('*').eq('auth_uid',uid).maybeSingle();
+  if(exist && exist.lv){
+    ME={ uid, name:exist.name, sect:exist.sect, talent, av:exist.av, lv:exist.lv, rep:exist.rep||0,
+      wins:exist.wins||0, losses:exist.losses||0, stats:exist.stats||stats, skills:exist.skills||['pingzhang','roujin','shenxing','yungong','gedang'],
+      hp:exist.hp, hp_max:exist.hp_max, mp:exist.mp, mp_max:exist.mp_max,
+      exp:exist.exp||0, gongli:exist.gongli||0, silver:exist.silver||50, title:exist.title||'',
+      master:exist.master, sect_rank:exist.sect_rank||0 };
+    // 若这次改了名号/门派, 更新
+    if(name!==exist.name || sect!==exist.sect){ ME.name=name; ME.sect=sect; await sb.from('jh_players').update({name,sect,last_seen:new Date().toISOString()}).eq('auth_uid',uid); }
+    else await sb.from('jh_players').update({last_seen:new Date().toISOString()}).eq('auth_uid',uid);
+  } else {
+    ME={ uid, name, sect, talent, av, lv:1, rep:0, wins:0, losses:0, stats,
+      skills:['pingzhang','roujin','shenxing','yungong','gedang'],
+      hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax,
+      exp:0, gongli:0, silver:50, title:'', master:null, sect_rank:0 };
+    await sb.from('jh_players').upsert({ auth_uid:uid, name, sect, av, lv:1, rep:0, wins:0, losses:0,
+      stats, skills:ME.skills, hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax,
+      exp:0, gongli:0, silver:50, title:'', is_bot:false, last_seen:new Date().toISOString() });
+  }
   saveLocal();
-  curSect=sect;
+  curSect=ME.sect;
   enterHall();
 }
 
@@ -299,12 +328,30 @@ function enterHall(){
   startHeartbeat();
   subscribePlayers();
   watchDuels();   // 监听战书 + 对战更新
+  watchFeuds();   // 监听偷袭
+  bindOps();
   ensureBots();
 }
+// 监听针对我的偷袭
+let feudChan=null;
+function watchFeuds(){
+  if(feudChan) return;
+  feudChan=sb.channel('jh-feud-watch')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'jh_feuds',filter:'target=eq.'+ME.uid}, p=>{
+      if(p.new.kind==='ambush') onAmbushed(p.new);
+    }).subscribe();
+}
+// 等级称号(按等级) + 内功境界(按功力)
+const TITLES=[[1,'无名小卒'],[3,'初出茅庐'],[5,'江湖新秀'],[8,'一方少侠'],[12,'名动一方'],[18,'一代大侠'],[26,'威震江湖'],[40,'一代宗师']];
+const REALMS=[[0,'未入门'],[100,'初窥门径'],[400,'略有小成'],[1000,'登堂入室'],[2500,'融会贯通'],[6000,'炉火纯青'],[12000,'出神入化'],[25000,'登峰造极']];
+function titleOf(lv){ let t='无名小卒'; for(const[n,s]of TITLES){ if(lv>=n)t=s; } return t; }
+function realmOf(g){ let t='未入门'; for(const[n,s]of REALMS){ if(g>=n)t=s; } return t; }
+function realmNext(g){ for(const[n,s]of REALMS){ if(g<n) return [n,s]; } return null; }
 function renderMe(){
+  ME.title=titleOf(ME.lv);
   $('#meAv').textContent=ME.av; $('#meName').textContent=ME.name;
-  $('#meTitle').textContent=ME.rep>=100?'· 一方豪杰':'';
-  $('#meMeta').textContent=`${SECTS[ME.sect].nm} · 威望 ${ME.rep} · ${ME.wins}胜${ME.losses}负`;
+  $('#meTitle').textContent='· '+ME.title;
+  $('#meMeta').textContent=`${SECTS[ME.sect].nm} · 第${ME.lv}重 · ${realmOf(ME.gongli||0)} · 威望${ME.rep} · ${ME.wins}胜${ME.losses}负 · 银${ME.silver||0}`;
 }
 function renderSectTabs(){
   $('#sectTabs').innerHTML=SECT_ORDER.map(id=>`<div class="sect-tab ${id===curSect?'on':''}" data-sect="${id}">${SECTS[id].ic} ${SECTS[id].nm}</div>`).join('');
@@ -378,9 +425,7 @@ async function refreshHeroes(sect){
   });
 }
 function onHeroClick(uid, nm){
-  // 第三批: 下战书。先占位
-  if(window.JH_DUEL) window.JH_DUEL.challenge(uid,nm);
-  else toast('切磋功能即将开放…');
+  heroActions(uid, nm);   // 弹: 切磋/偷袭/拜师
 }
 
 // 心跳(刷 last_seen + 定时刷群侠)
@@ -661,6 +706,181 @@ async function recordDuelResult(win, fled){
 
 function backHall(){ renderMe(); refreshHeroes(curSect); goScene('hall'); }
 function openSub(html){ $('#subContent').innerHTML=html; }
+
+// ============================================================
+//  怀旧江湖玩法: 打坐/偷袭/师徒/丹药/恩怨/威望榜
+// ============================================================
+function bindOps(){
+  $('#opMeditate').onclick=toggleMeditate;
+  $('#opElixir').onclick=openElixir;
+  $('#opFeud').onclick=openFeud;
+  $('#opMaster').onclick=openMaster;
+}
+// —— 打坐练功: 挂机涨功力+经验, 起身即止 ——
+let medTimer=null, medGain=0;
+function toggleMeditate(){
+  if(medTimer){ stopMeditate(); return; }
+  $('#opMeditate').classList.add('active'); $('#opMeditate').textContent='🧘 运功中(点击起身)';
+  medGain=0;
+  showModal(`<div class="meditate-box"><div class="meditate-orb">🧘</div>
+    <div style="margin-top:10px;font-weight:700">凝神打坐，周天运转…</div>
+    <div class="med-gain" id="medGain">已聚功力 +0</div>
+    <div class="tiny mt" id="medRealm"></div>
+    <button class="btn primary wide mt2" id="medStop">起身收功</button></div>`);
+  $('#medStop').onclick=stopMeditate;
+  const tick=async()=>{
+    const g=rnd(3,7)+Math.floor((ME.stats.root||5)/2);   // 内力资质高涨得快
+    ME.gongli=(ME.gongli||0)+g; medGain+=g; ME.exp=(ME.exp||0)+Math.ceil(g/2);
+    // 升级判定
+    while(ME.exp>=ME.lv*80){ ME.exp-=ME.lv*80; ME.lv++; ME.hp_max+=10; ME.mp_max+=6; }
+    $('#medGain') && ($('#medGain').textContent=`已聚功力 +${medGain}`);
+    const nx=realmNext(ME.gongli);
+    $('#medRealm') && ($('#medRealm').textContent=`当前境界：${realmOf(ME.gongli)}${nx?` · 距「${nx[1]}」还需 ${nx[0]-ME.gongli}`:' · 已臻化境'}`);
+  };
+  tick();
+  medTimer=setInterval(tick, 2500);
+}
+async function stopMeditate(){
+  if(!medTimer) return; clearInterval(medTimer); medTimer=null;
+  $('#opMeditate').classList.remove('active'); $('#opMeditate').textContent='🧘 打坐练功';
+  hideModal();
+  try{ await sb.from('jh_players').update({gongli:ME.gongli,exp:ME.exp,lv:ME.lv,hp_max:ME.hp_max,mp_max:ME.mp_max}).eq('auth_uid',ME.uid); }catch(e){}
+  renderMe();
+  if(medGain>0) toast(`收功，共聚功力 ${medGain}，境界：${realmOf(ME.gongli)}`);
+}
+
+// —— 偷袭: 聊天室对在场任何人突袭(掉血+结仇, realtime通知), 有冷却 ——
+async function ambush(uid, nm){
+  const now=Date.now();
+  if(ME._lastAmbush && now-ME._lastAmbush<20000){ toast('出手太频，稍后再袭('+Math.ceil((20000-(now-ME._lastAmbush))/1000)+'s)'); return; }
+  ME._lastAmbush=now;
+  // RLS 只允许改自己的行, 攻击者不能直接扣对方hp → 把伤害写进 feud.detail(dmg=N),
+  // 被袭者收到 realtime 后【自己】扣自己的血(见 onAmbushed)。
+  const dmg=rnd(8,18)+Math.floor((ME.stats.atk||5)*1.5);
+  await sb.from('jh_feuds').insert({actor:ME.uid,actor_name:ME.name,target:uid,target_name:nm,kind:'ambush',detail:'dmg='+dmg});
+  try{ await sb.from('jh_messages').insert({sect:curSect,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${ME.name} 暗施冷手偷袭了 ${nm}！(伤${dmg})`}); }catch(e){}
+  toast(`偷袭得手！${nm} 气血-${dmg}`);
+}
+// 收到别人偷袭我 → 自己扣血(RLS下只有本人能改自己hp)
+async function onAmbushed(f){
+  const m=/dmg=(\d+)/.exec(f.detail||''); const dmg=m?+m[1]:rnd(8,18);
+  ME.hp=clamp((ME.hp||ME.hp_max)-dmg,1,ME.hp_max);   // 偷袭不致死留1血
+  try{ await sb.from('jh_players').update({hp:ME.hp}).eq('auth_uid',ME.uid); }catch(e){}
+  renderMe();
+  toast(`⚠ ${f.actor_name} 偷袭了你！气血-${dmg}，速去恩怨录寻仇`);
+}
+
+// 点群侠 → 选 切磋(下战书) / 偷袭 / 拜师
+function heroActions(uid, nm){
+  showModal(`<div class="center"><div style="font-size:17px;font-weight:700;margin-bottom:12px">对「${esc(nm)}」</div>
+    <button class="btn primary wide" id="haDuel">⚔️ 下战书切磋</button>
+    <button class="btn wide mt" id="haAmbush">🥷 冷不丁偷袭</button>
+    <button class="btn wide mt" id="haMaster">🙇 拜其为师</button>
+    <button class="btn ghost wide mt" id="haCancel">作罢</button></div>`);
+  $('#haDuel').onclick=()=>{ hideModal(); if(window.JH_DUEL) JH_DUEL.challenge(uid,nm); };
+  $('#haAmbush').onclick=()=>{ hideModal(); ambush(uid,nm); };
+  $('#haMaster').onclick=()=>{ hideModal(); askMaster(uid,nm); };
+  $('#haCancel').onclick=hideModal;
+}
+
+// —— 师徒: 拜师(设 master) + 师父传功(把自己会的招传给徒弟) ——
+async function askMaster(uid, nm){
+  if(ME.master){ toast('你已有师父'); return; }
+  if(uid===ME.uid){ toast('不能拜自己'); return; }
+  ME.master=uid;
+  await sb.from('jh_players').update({master:uid}).eq('auth_uid',ME.uid);
+  await sb.from('jh_feuds').insert({actor:ME.uid,actor_name:ME.name,target:uid,target_name:nm,kind:'apprentice',detail:'拜师'});
+  try{ await sb.from('jh_messages').insert({sect:curSect,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${ME.name} 拜 ${nm} 为师！`}); }catch(e){}
+  toast(`你拜 ${nm} 为师`);
+}
+async function openMaster(){
+  // 展示我的师父 + 我的徒弟 + 传功
+  const { data:mine }=await sb.from('jh_players').select('*').eq('master',ME.uid);
+  const disciples=mine||[];
+  let masterNm='(无)';
+  if(ME.master){ const { data:m }=await sb.from('jh_players').select('name').eq('auth_uid',ME.master).maybeSingle(); masterNm=m?m.name:'(已离去)'; }
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:8px">👤 师徒</div>
+    <div class="tiny">你的师父：<b>${esc(masterNm)}</b></div>
+    <div class="tiny mt">你的徒弟(${disciples.length})：</div>
+    ${disciples.length?disciples.map(d=>`<div class="scroll-card" style="margin:6px 0;display:flex;align-items:center;gap:8px">
+      <span style="font-size:20px">${esc(d.av||'🧑')}</span><span style="flex:1">${esc(d.name)}</span>
+      <button class="btn sm" data-teach="${d.auth_uid}">传功</button></div>`).join(''):'<div class="tiny" style="color:var(--dim)">尚无徒弟。点群侠可收徒/被拜。</div>'}
+    <button class="btn ghost wide mt2" onclick="hideModal()">关闭</button></div>`);
+  document.querySelectorAll('[data-teach]').forEach(el=>el.onclick=()=>teachDisciple(el.dataset.teach));
+}
+async function teachDisciple(uid){
+  // 把我会的一个高级招传给徒弟
+  const advanced=ME.skills.filter(s=>['kuangfeng','taiji','lingbo','jiuyin','liuyun','wandu'].includes(s));
+  if(!advanced.length){ toast('你还没有可传的高深武学'); return; }
+  const { data:d }=await sb.from('jh_players').select('skills,name').eq('auth_uid',uid).maybeSingle();
+  if(!d){ toast('徒弟已离去'); return; }
+  const has=d.skills||[]; const canTeach=advanced.filter(s=>!has.includes(s));
+  if(!canTeach.length){ toast('徒弟已尽得你所学'); return; }
+  const sk=canTeach[0];
+  await sb.from('jh_players').update({skills:[...has,sk]}).eq('auth_uid',uid);
+  ME.rep=(ME.rep||0)+5; await sb.from('jh_players').update({rep:ME.rep}).eq('auth_uid',ME.uid); renderMe();
+  toast(`你将「${SKILLS[sk].nm}」传给了 ${d.name}，威望+5`);
+  openMaster();
+}
+
+// —— 丹药铺 ——
+const ELIXIRS=[
+  {id:'jinchuang', nm:'金创药', ic:'🩹', price:15, desc:'回气血 40', eff:()=>{ ME.hp=clamp((ME.hp||0)+40,0,ME.hp_max); }},
+  {id:'huxin', nm:'护心丹', ic:'❤️‍🩹', price:30, desc:'回满气血', eff:()=>{ ME.hp=ME.hp_max; }},
+  {id:'huanhun', nm:'还魂丹', ic:'💊', price:40, desc:'回满内力', eff:()=>{ ME.mp=ME.mp_max; }},
+  {id:'dahuan', nm:'大还丹', ic:'🔮', price:80, desc:'气血内力全满+功力+30', eff:()=>{ ME.hp=ME.hp_max; ME.mp=ME.mp_max; ME.gongli=(ME.gongli||0)+30; }},
+];
+function openElixir(){
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:4px">💊 丹药铺</div>
+    <div class="tiny" style="margin-bottom:10px">银两 <b style="color:var(--red)">${ME.silver||0}</b> · 气血 ${ME.hp}/${ME.hp_max} · 内力 ${ME.mp}/${ME.mp_max}</div>
+    ${ELIXIRS.map(e=>`<div class="scroll-card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">${e.ic}</span>
+      <div style="flex:1"><div style="font-weight:700">${e.nm} <span class="tiny" style="color:var(--dim)">${e.desc}</span></div></div>
+      <button class="btn sm" data-elixir="${e.id}">${e.price}两</button></div>`).join('')}
+    <button class="btn ghost wide mt" onclick="hideModal()">关闭</button></div>`);
+  document.querySelectorAll('[data-elixir]').forEach(el=>el.onclick=async()=>{
+    const e=ELIXIRS.find(x=>x.id===el.dataset.elixir);
+    if((ME.silver||0)<e.price){ toast('银两不足'); return; }
+    ME.silver-=e.price; e.eff();
+    await sb.from('jh_players').update({silver:ME.silver,hp:ME.hp,mp:ME.mp,gongli:ME.gongli}).eq('auth_uid',ME.uid);
+    renderMe(); openElixir(); toast(`服下${e.nm}`);
+  });
+}
+
+// —— 恩怨录 ——
+async function openFeud(){
+  const { data }=await sb.from('jh_feuds').select('*').or(`target.eq.${ME.uid},actor.eq.${ME.uid}`).order('created_at',{ascending:false}).limit(30);
+  const rows=(data||[]);
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:8px">📜 恩怨录</div>
+    ${rows.length?rows.map(f=>{
+      const iAmTarget=f.target===ME.uid;
+      let txt;
+      if(f.kind==='ambush') txt=iAmTarget?`<span style="color:var(--red)">${esc(f.actor_name)} 偷袭了你</span>`:`你偷袭了 ${esc(f.target_name)}`;
+      else if(f.kind==='apprentice') txt=iAmTarget?`${esc(f.actor_name)} 拜你为师`:`你拜 ${esc(f.target_name)} 为师`;
+      else txt=esc(f.detail||f.kind);
+      const canRevenge=iAmTarget&&f.kind==='ambush';
+      return `<div class="scroll-card" style="margin-bottom:6px;display:flex;align-items:center;gap:8px;font-size:13px">
+        <span style="flex:1">${txt} <span class="tiny" style="color:var(--dim)">${fmtAgo(f.created_at)}</span></span>
+        ${canRevenge?`<button class="btn sm" data-revenge="${f.actor}" data-nm="${esc(f.actor_name)}">寻仇</button>`:''}</div>`;
+    }).join(''):'<div class="tiny center" style="padding:20px;color:var(--dim)">江湖恩怨，尚是一张白纸。</div>'}
+    <button class="btn ghost wide mt" onclick="hideModal()">关闭</button></div>`);
+  document.querySelectorAll('[data-revenge]').forEach(el=>el.onclick=()=>{ hideModal(); if(window.JH_DUEL) JH_DUEL.challenge(el.dataset.revenge, el.dataset.nm); });
+}
+function fmtAgo(ts){ const s=Math.floor((Date.now()-new Date(ts).getTime())/1000); if(s<60)return'刚刚'; if(s<3600)return Math.floor(s/60)+'分钟前'; if(s<86400)return Math.floor(s/3600)+'时前'; return Math.floor(s/86400)+'天前'; }
+
+// —— 威望榜 ——
+window.JH_RANK=async function(){
+  const { data }=await sb.from('jh_players').select('name,av,sect,lv,rep,gongli,wins,losses,is_bot').order('rep',{ascending:false}).limit(20);
+  const rows=(data||[]);
+  showModal(`<div><div style="font-size:18px;font-weight:700;margin-bottom:10px;text-align:center">🏆 江湖威望榜</div>
+    ${rows.map((p,i)=>`<div style="display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid var(--line)">
+      <span style="width:22px;text-align:center;font-weight:700;color:${i<3?'var(--red)':'var(--dim)'}">${i+1}</span>
+      <span style="font-size:20px">${esc(p.av||'🧑')}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name)}${p.is_bot?' <span class="tiny" style="color:var(--jade)">江湖客</span>':''}</div>
+      <div class="tiny" style="color:var(--dim)">${titleOf(p.lv)} · ${realmOf(p.gongli||0)} · ${p.wins||0}胜${p.losses||0}负</div></div>
+      <span style="color:var(--red);font-weight:700">${p.rep||0}</span></div>`).join('')||'<div class="tiny center">榜上无名</div>'}
+    <button class="btn ghost wide mt2" onclick="hideModal()">关闭</button></div>`);
+};
 
 // ============ 启动 ============
 initEnter();
