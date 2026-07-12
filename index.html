@@ -305,8 +305,11 @@ async function enterJianghu(name, sect, talent){
     if(name!==exist.name || sect!==exist.sect){ ME.name=name; ME.sect=sect; await sb.from('jh_players').update({name,sect,last_seen:new Date().toISOString()}).eq('auth_uid',uid); }
     else await sb.from('jh_players').update({last_seen:new Date().toISOString()}).eq('auth_uid',uid);
   } else {
+    // 初始武学 = 通用基础 + 本门派入门招(tier1)
+    const baseSkills=['pingzhang','roujin','shenxing','yungong','gedang'];
+    const entry=(SECT_TREE[sect]||[])[0]; if(entry) baseSkills.push(entry);
     ME={ uid, name, sect, talent, av, lv:1, rep:0, wins:0, losses:0, stats,
-      skills:['pingzhang','roujin','shenxing','yungong','gedang'],
+      skills:baseSkills,
       hp:hpMax, hp_max:hpMax, mp:mpMax, mp_max:mpMax,
       exp:0, gongli:0, silver:50, title:'', master:null, sect_rank:0 };
     await sb.from('jh_players').upsert({ auth_uid:uid, name, sect, av, lv:1, rep:0, wins:0, losses:0,
@@ -330,6 +333,7 @@ function enterHall(){
   watchDuels();   // 监听战书 + 对战更新
   watchFeuds();   // 监听偷袭
   bindOps();
+  unlockSectSkills();   // 补发已达境界的门派武学(含入门招)
   ensureBots();
 }
 // 监听针对我的偷袭
@@ -456,28 +460,59 @@ async function ensureBots(){
 //  武学 + 相克(纯函数, 双端一致)
 // ============================================================
 const SKILLS={
-  pingzhang:{nm:'平常招',sys:'gang',kind:'attack',mp:0,pow:1.0,desc:'不耗内力的一击'},
-  roujin:{nm:'柔劲',sys:'rou',kind:'attack',mp:4,pow:1.0,desc:'以柔卸力'},
-  shenxing:{nm:'身法击',sys:'ling',kind:'attack',mp:4,pow:1.0,desc:'欺身近击'},
-  yungong:{nm:'运功',sys:'none',kind:'charge',mp:0,pow:0,desc:'回内力，下招翻倍'},
-  gedang:{nm:'格挡',sys:'none',kind:'guard',mp:2,pow:0,desc:'减伤，易被身法破'},
-  kuangfeng:{nm:'狂风刀',sys:'gang',kind:'attack',mp:10,pow:1.6,desc:'刚猛破守'},
-  taiji:{nm:'太极劲',sys:'rou',kind:'attack',mp:10,pow:1.6,desc:'四两拨千斤'},
-  lingbo:{nm:'凌波步',sys:'ling',kind:'attack',mp:10,pow:1.6,desc:'飘忽克刚'},
-  jiuyin:{nm:'九阴爪',sys:'gang',kind:'special',mp:24,pow:2.6,desc:'绝招·克制暴涨'},
-  liuyun:{nm:'流云袖',sys:'rou',kind:'special',mp:24,pow:2.6,desc:'绝招·柔中带杀'},
-  wandu:{nm:'万剑归宗',sys:'ling',kind:'special',mp:26,pow:2.8,desc:'绝招·剑气纵横'},
+  // —— 通用基础(人人可用) ——
+  pingzhang:{nm:'平常招',sys:'gang',kind:'attack',mp:0,pow:1.0,tier:0,desc:'不耗内力的一击'},
+  yungong:{nm:'运功',sys:'none',kind:'charge',mp:0,pow:0,tier:0,desc:'回内力，下招翻倍'},
+  gedang:{nm:'格挡',sys:'none',kind:'guard',mp:2,pow:0,tier:0,desc:'减伤，易被身法破'},
+  // 三系入门基础招(建号即得, 保证一入门就能三系拆招)
+  roujin:{nm:'柔劲',sys:'rou',kind:'attack',mp:4,pow:1.0,tier:0,desc:'以柔卸力'},
+  shenxing:{nm:'身法击',sys:'ling',kind:'attack',mp:4,pow:1.0,tier:0,desc:'欺身近击'},
+  // —— 少林(刚) 武学树 ——
+  luohan:{nm:'罗汉拳',sys:'gang',kind:'attack',mp:6,pow:1.3,tier:1,sect:'shaolin',desc:'少林入门·刚正拳法'},
+  weituo:{nm:'韦陀掌',sys:'gang',kind:'attack',mp:12,pow:1.7,tier:2,sect:'shaolin',desc:'少林进阶·掌力雄浑破守'},
+  jingang:{nm:'金刚伏魔',sys:'gang',kind:'special',mp:26,pow:2.7,tier:3,sect:'shaolin',desc:'少林绝学·刚猛无俦'},
+  // —— 武当(柔) 武学树 ——
+  tiyun:{nm:'梯云纵',sys:'rou',kind:'attack',mp:6,pow:1.3,tier:1,sect:'wudang',desc:'武当入门·柔劲卸力'},
+  taiji:{nm:'太极劲',sys:'rou',kind:'attack',mp:12,pow:1.7,tier:2,sect:'wudang',desc:'武当进阶·四两拨千斤'},
+  liangyi:{nm:'两仪化剑',sys:'rou',kind:'special',mp:26,pow:2.7,tier:3,sect:'wudang',desc:'武当绝学·后发先至'},
+  // —— 峨眉(灵) 武学树 ——
+  feihua:{nm:'飞花剑',sys:'ling',kind:'attack',mp:6,pow:1.3,tier:1,sect:'emei',desc:'峨眉入门·轻灵剑法'},
+  lingbo:{nm:'凌波步',sys:'ling',kind:'attack',mp:12,pow:1.7,tier:2,sect:'emei',desc:'峨眉进阶·飘忽克刚'},
+  wandu:{nm:'万剑归宗',sys:'ling',kind:'special',mp:26,pow:2.8,tier:3,sect:'emei',desc:'峨眉绝学·剑气纵横'},
+  // —— 丐帮(刚) 武学树 ——
+  dagou:{nm:'打狗棒',sys:'gang',kind:'attack',mp:6,pow:1.3,tier:1,sect:'gaibang',desc:'丐帮入门·棒法精妙'},
+  kuanglong:{nm:'亢龙有悔',sys:'gang',kind:'attack',mp:12,pow:1.8,tier:2,sect:'gaibang',desc:'丐帮进阶·降龙一式'},
+  jianglong:{nm:'降龙十八掌',sys:'gang',kind:'special',mp:28,pow:2.9,tier:3,sect:'gaibang',desc:'丐帮绝学·天下第一掌'},
+  // —— 秘籍/奇遇武学(跨门派, 靠书铺/掉落/传功) ——
+  kuangfeng:{nm:'狂风刀',sys:'gang',kind:'attack',mp:10,pow:1.6,tier:2,desc:'江湖散招·刚猛破守'},
+  liuyun:{nm:'流云袖',sys:'rou',kind:'special',mp:24,pow:2.6,tier:3,desc:'秘籍绝招·柔中带杀'},
+  jiuyin:{nm:'九阴白骨爪',sys:'gang',kind:'special',mp:24,pow:2.6,tier:3,desc:'秘籍绝招·至阴至毒'},
 };
+// 门派武学树(按境界解锁: 入门即得tier1, 功力到「登堂入室」解锁tier2, 「炉火纯青」解锁tier3绝学)
+const SECT_TREE={
+  shaolin:['luohan','weituo','jingang'],
+  wudang:['tiyun','taiji','liangyi'],
+  emei:['feihua','lingbo','wandu'],
+  gaibang:['dagou','kuanglong','jianglong'],
+  sanren:[],   // 散人无门派树, 靠秘籍
+};
+const TIER_REALM=[0,0,1000,6000];   // tier→需达到的功力(1000=登堂入室, 6000=炉火纯青)
 const SYS_LABEL={gang:'刚',rou:'柔',ling:'灵',none:'—'};
 const SYS_CLS={gang:'sys-gang',rou:'sys-rou',ling:'sys-ling'};
 function sysWin(a,b){ if(a===b||a==='none'||b==='none')return 0; const beat={gang:'rou',rou:'ling',ling:'gang'}; if(beat[a]===b)return 1; if(beat[b]===a)return -1; return 0; }
 
-// 由玩家资料算战斗属性
+// 由玩家资料算战斗属性。功力(打坐所得)真正反哺战力: 每档功力加攻防内力气血。
 function fighterFrom(p){
   const s=p.stats||{atk:5,agi:5,root:5,def:5,luck:5};
+  const g=p.gongli||0;
+  const gk=Math.sqrt(g/60);           // 功力加成系数(平方根,边际递减): 功力240→2, 6000→10
+  const lv=p.lv||1;
+  const hpMax=Math.round((p.hp_max||100)+g*0.04+lv*6);   // 功力+等级 撑气血
+  const mpMax=Math.round((p.mp_max||60)+g*0.03);
   return { name:p.name, av:p.av||'🧑', skills:p.skills||['pingzhang','roujin','shenxing','yungong','gedang'],
-    hp:p.hp_max||100, hpMax:p.hp_max||100, mp:p.mp_max||60, mpMax:p.mp_max||60,
-    atk:8+s.atk*2, def:6+s.def*1.5, agi:5+s.agi*1.6, stance:0, stanceMax:100, charged:false, guarding:false };
+    hp:hpMax, hpMax, mp:mpMax, mpMax,
+    atk:Math.round(8+s.atk*2+gk*2.2), def:Math.round(6+s.def*1.5+gk*1.6), agi:Math.round(5+s.agi*1.6+gk*1.4),
+    stance:0, stanceMax:100, charged:false, guarding:false };
 }
 // 结算一回合(挑战者端执行, 纯函数改 state)。返回 {log:[], cHp, oHp, ...}
 function resolveTurn(st, cMove, oMove){
@@ -710,6 +745,15 @@ function openSub(html){ $('#subContent').innerHTML=html; }
 // ============================================================
 //  怀旧江湖玩法: 打坐/偷袭/师徒/丹药/恩怨/威望榜
 // ============================================================
+// 功力到境界 → 解锁本门派武学树对应 tier 招式(入门即得, 登堂入室解锁进阶, 炉火纯青解锁绝学)
+function unlockSectSkills(){
+  const tree=SECT_TREE[ME.sect]||[]; const g=ME.gongli||0; let learned=[];
+  tree.forEach((sid,idx)=>{ const tier=idx+1; const need=TIER_REALM[tier]||0;
+    if(g>=need && !ME.skills.includes(sid)){ ME.skills.push(sid); learned.push(SKILLS[sid].nm); }
+  });
+  if(learned.length){ toast('参悟门派武学：'+learned.join('、')+'！'); try{ sb.from('jh_players').update({skills:ME.skills}).eq('auth_uid',ME.uid); }catch(e){} }
+  return learned;
+}
 function bindOps(){
   $('#opMeditate').onclick=toggleMeditate;
   $('#opElixir').onclick=openElixir;
@@ -733,6 +777,7 @@ function toggleMeditate(){
     ME.gongli=(ME.gongli||0)+g; medGain+=g; ME.exp=(ME.exp||0)+Math.ceil(g/2);
     // 升级判定
     while(ME.exp>=ME.lv*80){ ME.exp-=ME.lv*80; ME.lv++; ME.hp_max+=10; ME.mp_max+=6; }
+    unlockSectSkills();   // 功力到境界 → 自动参悟门派武学
     $('#medGain') && ($('#medGain').textContent=`已聚功力 +${medGain}`);
     const nx=realmNext(ME.gongli);
     $('#medRealm') && ($('#medRealm').textContent=`当前境界：${realmOf(ME.gongli)}${nx?` · 距「${nx[1]}」还需 ${nx[0]-ME.gongli}`:' · 已臻化境'}`);
