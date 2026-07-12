@@ -191,9 +191,11 @@
       <span class="btn sm ghost" id="rankBtn">威望榜</span>
     </div>
     <div class="ops-bar" id="opsBar">
-      <span class="op" id="opMeditate">🧘 打坐练功</span>
-      <span class="op" id="opElixir">💊 丹药铺</span>
-      <span class="op" id="opFeud">📜 恩怨录</span>
+      <span class="op" id="opMeditate">🧘 打坐</span>
+      <span class="op" id="opArena">🥊 演武场</span>
+      <span class="op" id="opShop">📖 书铺</span>
+      <span class="op" id="opElixir">💊 丹药</span>
+      <span class="op" id="opFeud">📜 恩怨</span>
       <span class="op" id="opMaster">👤 师徒</span>
     </div>
     <div class="sect-tabs" id="sectTabs"></div>
@@ -372,6 +374,7 @@ async function switchSect(sect){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'jh_messages',filter:'sect=eq.'+sect}, p=>{
       appendMsg(p.new);
     }).subscribe(st=>{ $('#connDot').classList.toggle('live', st==='SUBSCRIBED'); });
+  startXiaoer();   // 店小二常驻本厅, 冷场活跃
 }
 async function loadMessages(sect){
   const { data }=await sb.from('jh_messages').select('*').eq('sect',sect).order('id',{ascending:false}).limit(40);
@@ -756,6 +759,8 @@ function unlockSectSkills(){
 }
 function bindOps(){
   $('#opMeditate').onclick=toggleMeditate;
+  $('#opArena').onclick=openArena;
+  $('#opShop').onclick=()=>{ if(window.openShop) openShop(); else toast('书铺即将开张…'); };
   $('#opElixir').onclick=openElixir;
   $('#opFeud').onclick=openFeud;
   $('#opMaster').onclick=openMaster;
@@ -926,6 +931,129 @@ window.JH_RANK=async function(){
       <span style="color:var(--red);font-weight:700">${p.rep||0}</span></div>`).join('')||'<div class="tiny center">榜上无名</div>'}
     <button class="btn ghost wide mt2" onclick="hideModal()">关闭</button></div>`);
 };
+
+// ============================================================
+//  演武场: 单人 vs NPC 战斗(复用相克引擎, 不走 jh_duels, 纯前端即时)
+// ============================================================
+const NPC_POOL=[
+  {name:'木人桩', av:'🪵', lvOff:-1, skills:['pingzhang','gedang'], reward:{exp:8,silver:3,gongli:5}, intro:'练武场的木人桩，最适合初学者试招。'},
+  {name:'街边泼皮', av:'🧟', lvOff:0, skills:['pingzhang','roujin','gedang'], reward:{exp:14,silver:8,gongli:8}},
+  {name:'黑店打手', av:'💪', lvOff:1, skills:['pingzhang','kuangfeng','yungong','gedang'], reward:{exp:22,silver:15,gongli:12}, drop:'kuangfeng',dropRate:0.2},
+  {name:'流浪剑客', av:'🗡️', lvOff:1, skills:['shenxing','feihua','yungong'], reward:{exp:24,silver:14,gongli:14}, drop:'feihua',dropRate:0.15},
+  {name:'蒙面高手', av:'🥷', lvOff:2, skills:['roujin','taiji','gedang','yungong'], reward:{exp:36,silver:26,gongli:22}, drop:'taiji',dropRate:0.15},
+  {name:'魔教护法', av:'😈', lvOff:3, skills:['kuangfeng','jiuyin','gedang','yungong'], reward:{exp:60,silver:45,gongli:40}, drop:'jiuyin',dropRate:0.12},
+];
+let NB=null;   // NPC battle state
+function openArena(){
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:4px">🥊 演武场</div>
+    <div class="tiny" style="margin-bottom:10px">与江湖散人过招，练招练级涨功力。败不失命，胜有所得。</div>
+    ${NPC_POOL.map((n,i)=>{const lv=Math.max(1,ME.lv+(n.lvOff||0));return `<div class="scroll-card" style="margin-bottom:7px;display:flex;align-items:center;gap:9px;cursor:pointer" data-npc="${i}">
+      <span style="font-size:22px">${n.av}</span>
+      <div style="flex:1"><div style="font-weight:700">${n.name} <span class="tiny" style="color:var(--dim)">第${lv}重</span></div>
+      <div class="tiny" style="color:var(--dim)">${n.drop?'可能习得'+SKILLS[n.drop].nm:'练手'}</div></div>
+      <span class="btn sm">较量</span></div>`;}).join('')}
+    <button class="btn ghost wide mt" onclick="hideModal()">离开</button></div>`);
+  document.querySelectorAll('[data-npc]').forEach(el=>el.onclick=()=>{ hideModal(); startNpcBattle(NPC_POOL[+el.dataset.npc]); });
+}
+function startNpcBattle(tpl){
+  if(ME.hp<ME.hp_max*0.2){ toast('气血过低，先疗伤'); return; }
+  const lv=Math.max(1,ME.lv+(tpl.lvOff||0));
+  const me=fighterFrom({stats:ME.stats,gongli:ME.gongli,hp_max:ME.hp_max,mp_max:ME.mp_max,lv:ME.lv,skills:ME.skills,name:ME.name,av:ME.av});
+  me.hp=ME.hp; me.mp=ME.mp;   // 沿用当前气血内力
+  const foe=fighterFrom({stats:{atk:4+lv,agi:3+lv,root:3+lv,def:3+lv,luck:3}, gongli:lv*180, hp_max:60+lv*18, mp_max:30+lv*8, lv, skills:tpl.skills, name:tpl.name, av:tpl.av});
+  NB={ me, foe, tpl, turn:0, foeNext:aiPick(foe) };
+  renderNpc(tpl.intro||`${tpl.name} 摆开架势！`);
+}
+function renderNpc(top){
+  const {me,foe}=NB;
+  const bar=(cls,c,m,t)=>`<div class="bar ${cls}"><i style="width:${clamp(c/m*100,0,100)}%"></i>${t?`<span class="bt">${t}</span>`:''}</div>`;
+  const cb=(f,who)=>`<div class="combatant" id="ncb-${who}"><div class="cb-top"><div class="cb-av">${f.av}</div><div class="cb-nm">${esc(f.name)}</div></div>
+    ${bar('bar-hp',f.hp,f.hpMax,`气血 ${Math.ceil(f.hp)}/${f.hpMax}`)}${bar('bar-mp',f.mp,f.mpMax,'')}${bar('bar-st',f.stance,f.stanceMax,'')}</div>`;
+  const moves=me.skills.map(sid=>{const s=SKILLS[sid];if(!s)return'';const can=me.mp>=s.mp;const tag=s.kind==='special'?'sys-special':(SYS_CLS[s.sys]||'');const lb=s.kind==='special'?'绝':SYS_LABEL[s.sys];
+    return `<div class="move ${can?'':'disabled'}" data-nsk="${sid}"><div class="mv-nm">${s.nm}${lb!=='—'?`<span class="mv-sys ${tag}">${lb}</span>`:''}</div>${s.mp?`<span class="mv-cost">${s.mp}</span>`:''}<div class="mv-desc">${s.desc}</div></div>`;}).join('');
+  const logHtml=(NB.lastLog||[]).map(l=>`<div class="${l.s==='c'?'bl-you':'bl-foe'}">${l.t}</div>`).join('')||'<span class="tiny">见招拆招…</span>';
+  openSub(`<div class="battle"><div class="page-head"><span class="back" id="npcFlee">‹</span><h2>演武 · 第${NB.turn+1}回合</h2></div>
+    ${top?`<div class="narrate">${top}</div>`:''}
+    ${cb(foe,'foe')}${cb(me,'me')}
+    <div class="battle-log">${logHtml}</div>
+    <div class="moves" id="npcMoves">${moves}</div></div>`);
+  goScene('sub');
+  $('#npcMoves').querySelectorAll('.move:not(.disabled)').forEach(el=>el.onclick=()=>npcMove(el.dataset.nsk));
+  $('#npcFlee').onclick=()=>{ if(confirm('退出较量？')){ syncMe(); backHall(); } };
+}
+function npcMove(sid){
+  const {me,foe}=NB; const s=SKILLS[sid]; if(!s||me.mp<s.mp){ toast('内力不足'); return; }
+  const foeSid=NB.foeNext;
+  // 复用 resolveTurn(以 c=me, o=foe)
+  const st={c:me, o:foe, turn:NB.turn};
+  const logs=resolveTurn(st, sid, foeSid);
+  NB.turn=st.turn; NB.lastLog=logs;
+  playNpcFx(logs);
+  if(foe.hp<=0){ return endNpc(true); }
+  if(me.hp<=0){ return endNpc(false); }
+  NB.foeNext=aiPick(foe);
+  renderNpc('');
+}
+function playNpcFx(logs){ (logs||[]).forEach(l=>{ if(l.crit||l.rel>0) fxWord(l.crit?'绝':'破'); }); screenShake();
+  const meHurt=(logs||[]).some(l=>l.s==='o'); if(meHurt){ const c=$('#ncb-me'); if(c){c.classList.add('hurt');setTimeout(()=>c.classList.remove('hurt'),300);} } }
+function syncMe(){ ME.hp=Math.round(NB.me.hp); ME.mp=Math.round(NB.me.mp); sb.from('jh_players').update({hp:ME.hp,mp:ME.mp}).eq('auth_uid',ME.uid).then(()=>{}); }
+async function endNpc(win){
+  const tpl=NB.tpl; ME.hp=Math.round(NB.me.hp); ME.mp=Math.round(NB.me.mp);
+  let dropHtml='';
+  if(win){
+    const r=tpl.reward||{}; ME.exp=(ME.exp||0)+(r.exp||10); ME.silver=(ME.silver||0)+(r.silver||5); ME.gongli=(ME.gongli||0)+(r.gongli||8);
+    let up=[]; while(ME.exp>=ME.lv*80){ ME.exp-=ME.lv*80; ME.lv++; ME.hp_max+=10; ME.mp_max+=6; up.push(ME.lv); }
+    if(tpl.drop && !ME.skills.includes(tpl.drop) && Math.random()<(tpl.dropRate||0)){ ME.skills.push(tpl.drop); dropHtml=`<div class="mt" style="color:var(--gold);font-weight:700">✦ 习得 ${SKILLS[tpl.drop].nm}！</div>`; }
+    unlockSectSkills();
+    await sb.from('jh_players').update({exp:ME.exp,silver:ME.silver,gongli:ME.gongli,lv:ME.lv,hp:ME.hp,mp:ME.mp,hp_max:ME.hp_max,mp_max:ME.mp_max,skills:ME.skills}).eq('auth_uid',ME.uid);
+    renderMe();
+    openSub(`<div class="battle-end win"><div class="be-title">胜</div>
+      <div class="narrate">你击败了 ${tpl.name}。</div>
+      <div class="mt">经验+${tpl.reward.exp} · 银两+${tpl.reward.silver} · 功力+${tpl.reward.gongli}</div>
+      ${up.length?`<div class="tiny mt">修为精进至第${ME.lv}重</div>`:''}${dropHtml}
+      <button class="btn primary wide mt2" onclick="backHall()">收势</button>
+      <button class="btn ghost wide mt" id="npcAgain">再战</button></div>`);
+    goScene('sub'); $('#npcAgain')&&($('#npcAgain').onclick=()=>startNpcBattle(tpl));
+  } else {
+    ME.hp=Math.max(1,Math.round(ME.hp_max*0.15));
+    await sb.from('jh_players').update({hp:ME.hp,mp:ME.mp}).eq('auth_uid',ME.uid);
+    renderMe();
+    openSub(`<div class="battle-end lose"><div class="be-title">败</div>
+      <div class="narrate">不敌 ${tpl.name}，你负伤退下。</div>
+      <div class="tiny mt">去丹药铺疗伤，或打坐调养。</div>
+      <button class="btn wide mt2" onclick="backHall()">退下</button></div>`);
+    goScene('sub');
+  }
+  NB=null;
+}
+
+// ============================================================
+//  AI 店小二: 常驻大厅, 冷场自动说话(本地文案库打底, worker增强见第四批)
+// ============================================================
+const XIAOER_LINES=[
+  '客官里边请~ 上好的女儿红，还是先歇歇脚?',
+  '听说最近黑风寨的悍匪又出来劫道了，各位当心。',
+  '哟，这位少侠面生得很，头回来咱们这江湖吧?',
+  '要我说啊，练武不如练心，可这话没人爱听。',
+  '昨儿个有位大侠在演武场连胜十场，威风得紧！',
+  '茶续上了~ 江湖路远，喝口热的暖暖身子。',
+  '欸，几位要是手痒，比武台随时恭候。',
+  '有恩报恩，有仇报仇，这才是江湖嘛。',
+  '风紧，扯呼——啊不，我是说，天要变了。',
+];
+let xiaoerTimer=null;
+function startXiaoer(){
+  clearInterval(xiaoerTimer);
+  const say=()=>{
+    // 只在没什么人说话时插一句(避免刷屏): 简单概率
+    if(Math.random()<0.6) return;
+    const line=rand(XIAOER_LINES);
+    appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:line}, false);
+  };
+  xiaoerTimer=setInterval(say, 25000);
+  // 进厅先来一句欢迎
+  setTimeout(()=>appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(['客官里边请~','又来了位少侠，快请坐！','店里新到一坛女儿红，尝尝?'])},false), 1200);
+}
 
 // ============ 启动 ============
 initEnter();
