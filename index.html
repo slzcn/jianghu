@@ -387,6 +387,7 @@ async function loadMessages(sect){
 function appendMsg(m, noScroll){
   const chat=$('#chat');
   if(chat.querySelector('.msg.sys') && chat.children.length===1) chat.innerHTML='';
+  if(m.is_bot && (m.name==='店小二'||m.name==='说书人')) _lastAiMsgAt=Date.now();   // 供兜底判断: worker已应答则不重复
   const isMe=m.user_id===ME.uid;
   if(m.kind==='sys'){ const d=document.createElement('div'); d.className='msg sys'; d.innerHTML=`<span class="m-txt">${esc(m.text)}</span>`; chat.appendChild(d); }
   else{
@@ -408,6 +409,11 @@ async function sendMsg(){
   appendMsg({...row}, false);   // 乐观上屏
   const { error }=await sb.from('jh_messages').insert(row);
   if(error){ console.warn(error); toast('传音失败'); }
+  // 招呼店小二 → 求 AI 应答(worker在则真AI回, 不在则本地一句)
+  if(/店小二|小二|掌柜/.test(text)){
+    reqAI('xiaoer', `${ME.name}(${SECTS[ME.sect].nm})对店小二说：「${text}」。用店小二口吻回一句。`,
+      ()=>appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(XIAOER_LINES)},false));
+  }
 }
 $('#sendBtn').onclick=sendMsg;
 $('#msgIpt').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendMsg(); } });
@@ -1042,16 +1048,29 @@ const XIAOER_LINES=[
   '风紧，扯呼——啊不，我是说，天要变了。',
 ];
 let xiaoerTimer=null;
+// 求 AI 生成(worker在则真AI, 不在则本地文案兜底)。job结果由worker发进厅, 前端realtime收到。
+async function reqAI(kind, prompt, fallbackFn){
+  try{ await sb.from('jh_ai_jobs').insert({kind, sect:curSect, requester:ME.uid, prompt}); }
+  catch(e){ /* 建job失败 → 兜底 */ }
+  // 3.5秒内没等到worker结果(worker没开) → 本地兜底发一句(前端本地渲染, 不入库避免和worker重复)
+  const before=Date.now();
+  setTimeout(()=>{
+    // 若这几秒内厅里已出现 说书人/店小二 的新消息, 认为worker处理了, 不兜底
+    const recent=[...document.querySelectorAll('#chat .m-nm')].slice(-4).some(e=>/店小二|说书人/.test(e.textContent) && true);
+    if(fallbackFn && !_aiRespondedSince(before)) fallbackFn();
+  }, 3800);
+}
+let _lastAiMsgAt=0;
+function _aiRespondedSince(t){ return _lastAiMsgAt>t; }
 function startXiaoer(){
   clearInterval(xiaoerTimer);
   const say=()=>{
-    // 只在没什么人说话时插一句(避免刷屏): 简单概率
-    if(Math.random()<0.6) return;
-    const line=rand(XIAOER_LINES);
-    appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:line}, false);
+    if(Math.random()<0.55) return;
+    // 60%求AI轶事, 40%店小二本地闲话(轻量, 不全靠worker)
+    if(Math.random()<0.6){ reqAI('anecdote','讲一段此刻江湖的轶事或传闻', ()=>appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(XIAOER_LINES)},false)); }
+    else appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(XIAOER_LINES)},false);
   };
-  xiaoerTimer=setInterval(say, 25000);
-  // 进厅先来一句欢迎
+  xiaoerTimer=setInterval(say, 28000);
   setTimeout(()=>appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(['客官里边请~','又来了位少侠，快请坐！','店里新到一坛女儿红，尝尝?'])},false), 1200);
 }
 
