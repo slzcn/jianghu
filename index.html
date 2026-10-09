@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>江湖 · 多人</title>
 <link rel="preconnect" href="https://cddkniwbhvcbfgkgomtl.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
   :root{
@@ -158,6 +161,65 @@
   .battle-end.win .be-title{color:var(--red)} .battle-end.lose .be-title{color:var(--sub)}
   .narrate{background:var(--paper3);border-left:3px solid var(--red);padding:11px 14px;border-radius:0 5px 5px 0;font-size:14px;line-height:1.8;margin:12px 0}
   .narrate .who{color:var(--red);font-weight:700}
+
+  /* ===== 视觉升级 ===== */
+  .brush-title, h2, .be-title, .page-head h2 { font-family:"Noto Serif SC","Kaiti SC","STKaiti","Songti SC",serif; }
+
+  /* 水墨淡入动效 */
+  @keyframes inkSplashIn { 0%{opacity:0;transform:scale(0.8);filter:blur(8px)} 50%{opacity:.6;filter:blur(3px)} 100%{opacity:1;transform:scale(1);filter:blur(0)} }
+  #hall.on { animation:inkSplashIn .8s ease; }
+  .ink-bg { position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0; }
+  .ink-bg.go { animation:inkBgFade 2.5s ease forwards; }
+  @keyframes inkBgFade { 0%{opacity:0} 30%{opacity:.12} 100%{opacity:.05} }
+
+  /* 消息笔触动效 */
+  .msg .m-txt { animation:brushIn .35s ease; }
+  @keyframes brushIn { 0%{opacity:0;transform:scale(.92) translateY(4px)} 60%{opacity:1;transform:scale(1.02)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+
+  /* 门派配色 */
+  :root {
+    --c-sanren:#4A4A4A; --c-shaolin:#8B4513; --c-wudang:#2F4F4F; --c-emei:#556B2F; --c-gaibang:#8B7355;
+  }
+  .msg:not(.sys) .m-txt { border-left:3px solid var(--c-sanren); }
+  .msg.me .m-txt { border-left:none; border-right:3px solid var(--c-sanren); }
+  .sect-tab.on { background:var(--sect-color,var(--red)); border-color:var(--sect-color,var(--red-d)); }
+
+  /* 金色光晕(NPC胜利) */
+  .golden-glow { animation:goldGlow .8s ease; }
+  @keyframes goldGlow { 0%{box-shadow:inset 0 0 0 0 rgba(218,165,32,0)} 30%{box-shadow:inset 0 0 80px 20px rgba(218,165,32,.35)} 100%{box-shadow:inset 0 0 0 0 rgba(218,165,32,0)} }
+
+  /* 阅历进度条 */
+  .yueli-bar { height:6px;border-radius:3px;background:rgba(60,45,30,.12);overflow:hidden;margin-top:6px;position:relative }
+  .yueli-bar > i { display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),#d4af37);transition:width .4s }
+  .yueli-info { font-size:10.5px;color:var(--dim);margin-top:3px }
+
+  /* 门派势力条 */
+  .sect-power { display:flex;gap:3px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px;border:1px solid var(--line2) }
+  .sect-power .sp-seg { transition:width .4s;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--paper3);overflow:hidden;white-space:nowrap;cursor:pointer }
+  .sect-power-info { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px }
+  .sect-power-info .spi-item { font-size:10px;display:flex;align-items:center;gap:3px }
+  .sect-power-info .spi-dot { width:7px;height:7px;border-radius:2px;flex-shrink:0 }
+
+  /* 江湖令置顶 */
+  .pinned-msg { background:linear-gradient(90deg,rgba(154,123,63,.15),rgba(154,123,63,.08));border:1px solid var(--gold);border-radius:5px;padding:8px 12px;margin-bottom:8px;font-size:13px;display:flex;align-items:flex-start;gap:6px }
+  .pinned-msg .pm-icon { font-size:16px;flex-shrink:0 }
+  .pinned-msg .pm-body { flex:1 }
+  .pinned-msg .pm-who { color:var(--gold);font-weight:700;font-size:11px }
+
+  /* 灰显功能按钮 */
+  .btn.locked { opacity:.4;cursor:not-allowed;position:relative }
+  .btn.locked::after { content:attr(data-need); position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--dim);white-space:nowrap }
+  .ops-bar .op.locked { opacity:.35;cursor:not-allowed;position:relative }
+  .ops-bar .op.locked .lock-tag { font-size:8px;color:var(--dim);margin-left:3px }
+
+  /* 帮派标记 */
+  .gang-tag { font-size:9px;padding:1px 4px;border-radius:3px;margin-left:3px;font-weight:600 }
+  .gang-tag.ally { background:rgba(74,124,89,.2);color:var(--jade) }
+  .gang-tag.enemy { background:rgba(168,50,30,.16);color:var(--red) }
+
+  /* 系统事件广播样式 */
+  .msg.sys.event .m-txt { color:var(--gold);font-weight:600;font-size:12.5px;border:none;background:linear-gradient(90deg,rgba(154,123,63,.08),transparent);padding:4px 8px;border-radius:4px }
+
 </style>
 </head>
 <body>
@@ -197,7 +259,16 @@
       <span class="op" id="opElixir">💊 丹药</span>
       <span class="op" id="opFeud">📜 恩怨</span>
       <span class="op" id="opMaster">👤 师徒</span>
+      <span class="op locked" id="opLing" data-need="10">📜 江湖令<span class="lock-tag"></span></span>
+      <span class="op locked" id="opSect" data-need="30">🏯 开宗<span class="lock-tag"></span></span>
+      <span class="op locked" id="opBounty" data-need="50">💰 悬赏<span class="lock-tag"></span></span>
+      <span class="op locked" id="opTeach" data-need="80">📖 传功<span class="lock-tag"></span></span>
     </div>
+    <div class="sect-power" id="sectPower"></div>
+    <div class="sect-power-info" id="sectPowerInfo"></div>
+    <div id="pinnedMsg"></div>
+    <div class="yueli-bar" id="yueliBar"><i></i></div>
+    <div class="yueli-info" id="yueliInfo"></div>
     <div class="sect-tabs" id="sectTabs"></div>
     <div class="tiny" style="margin:2px 0 4px;color:var(--sub)">在此地的群侠(点击可下战书)：</div>
     <div class="heroes" id="heroes"></div>
@@ -247,6 +318,81 @@ const TALENTS=[
   {id:'ling', nm:'灵巧', tag:'主身法', dist:{agi:4,luck:2}},
   {id:'qi',   nm:'气宗', tag:'主内力', dist:{root:4,def:2}},
 ];
+
+// ---- 门派配色 ----
+const SECT_COLORS={sanren:'#4A4A4A',shaolin:'#8B4513',wudang:'#2F4F4F',emei:'#556B2F',gaibang:'#8B7355'};
+
+// ---- 阅历(复用 gongli 字段)分阶段解锁 ----
+const UNLOCKS=[
+  {yl:10, id:'ling', nm:'发布江湖令', desc:'全服可见公告，每人每天限1条'},
+  {yl:30, id:'sect', nm:'开宗立派', desc:'自定义帮派名，最多5人'},
+  {yl:50, id:'bounty', nm:'悬赏令', desc:'发布悬赏指定目标，胜者得银两'},
+  {yl:80, id:'teach', nm:'传授武学', desc:'传授已习非绝学技能，消耗50银两'},
+];
+function ylUnlocked(id){ const u=UNLOCKS.find(x=>x.id===id); return u ? (ME.gongli||0)>=u.yl : false; }
+function ylNextUnlock(){ for(const u of UNLOCKS){ if((ME.gongli||0)<u.yl) return u; } return null; }
+
+// ---- 门派外交(localStorage) ----
+const LS_DIPLO='jianghu_diplo_v1';
+function loadDiplo(){ try{ return JSON.parse(localStorage.getItem(LS_DIPLO)||'{}'); }catch(e){ return {}; } }
+function saveDiplo(d){ try{ localStorage.setItem(LS_DIPLO, JSON.stringify(d)); }catch(e){} }
+function sectRelation(mySect, otherSect){
+  if(mySect===otherSect) return 'same';
+  const d=loadDiplo();
+  const allies=d.allies||[]; const wars=d.wars||[];
+  const pair=[mySect,otherSect].sort().join('-');
+  if(allies.includes(pair)) return 'ally';
+  if(wars.includes(pair)) return 'war';
+  return 'neutral';
+}
+
+// ---- 江湖事件系统 ----
+const JIANGHU_EVENTS=[
+  {id:'wulin', nm:'武林大会', text:'「武林大会召开，各派掌门可发言，威望最高者将获封"盟主"称号」', eff:{}},
+  {id:'shenbing', nm:'神兵现世', text:'「江湖传言某地出现神兵利器，先到者得（NPC战斗奖励翻倍，持续15分钟）」', eff:{npcDouble:1}, dur:15},
+  {id:'yuehei', nm:'月黑风高', text:'「今夜月黑风高，适合行侠仗义（切磋胜利经验翻倍，持续10分钟）」', eff:{pvpExpDouble:1}, dur:10},
+  {id:'shuoshu', nm:'说书人登场', text:'「一位说书人走进大厅，开始讲述一段江湖传说…」', eff:{story:1}},
+  {id:'wenyi', nm:'瘟疫肆虐', text:'「某地瘟疫蔓延，行侠之人气血上限临时-20%，但胜利奖励翻倍」', eff:{hpPenalty:1, rewardDouble:1}, dur:20},
+  {id:'miji', nm:'武学秘籍现世', text:'「一本失传已久的秘籍出现在书铺，价格减半（持续30分钟）」', eff:{shopHalf:1}, dur:30},
+  {id:'lingpai', nm:'江湖令牌', text:'「一枚神秘令牌在江湖流传，持有者可免费挑战任意NPC」', eff:{freeNpc:1}, dur:20},
+  {id:'zongshi', nm:'宗师降临', text:'「一位隐世宗师现身，愿意传授绝学（特殊NPC战斗，胜利习得随机绝学）」', eff:{masterVisit:1}, dur:20},
+  {id:'enyuan', nm:'恩怨录', text:'「江湖恩怨录更新，切磋胜场最多的侠客将被记入史册」', eff:{}},
+  {id:'daxue', nm:'大雪封山', text:'「大雪封山，所有人内力恢复加快（mp每30秒自动+5）」', eff:{mpRegen:1}, dur:20},
+  {id:'heishi', nm:'黑市开张', text:'「黑市悄然开张，稀有秘籍以半价出售（持续20分钟）」', eff:{shopHalf:1}, dur:20},
+  {id:'yingxiong', nm:'英雄帖', text:'「一封英雄帖传遍江湖，邀天下豪杰共聚一堂（所有人威望+5）」', eff:{repAll:1}},
+];
+let activeEvent=null; // {id,nm,text,eff,expireAt}
+function eventActive(eff){ return activeEvent && activeEvent.eff && activeEvent.eff[eff]; }
+async function checkAndTriggerEvent(){
+  const LS_EVT='jianghu_lastevent_v1';
+  let last=0; try{ last=+localStorage.getItem(LS_EVT)||0; }catch(e){}
+  const now=Date.now();
+  const interval=rnd(20,40)*60*1000; // 20-40分钟
+  if(now-last<interval) return;
+  // 触发随机事件
+  const ev=JIANGHU_EVENTS[Math.floor(Math.random()*JIANGHU_EVENTS.length)];
+  activeEvent={id:ev.id, nm:ev.nm, text:ev.text, eff:ev.eff||{}};
+  if(ev.dur) activeEvent.expireAt=now+ev.dur*60*1000;
+  try{ localStorage.setItem(LS_EVT, String(now)); }catch(e){}
+  // 广播到所有门派频道
+  SECT_ORDER.forEach(async s=>{
+    try{ await sb.from('jh_messages').insert({sect:s,user_id:'system',name:'江湖快报',av:'📢',is_bot:true,kind:'sys',text:ev.text}); }catch(e){}
+  });
+  // 说书人事件 → 触发AI故事
+  if(ev.eff.story){ reqAI('anecdote','一位说书人走进大厅，请讲一段江湖传说故事', ()=>appendMsg({sect:curSect,user_id:'shuoshu',name:'说书人',av:'🎭',is_bot:true,kind:'msg',text:'话说当年...（此处省略一段江湖传说）'},false)); }
+  // 英雄帖 → 所有人威望+5(只加自己)
+  if(ev.eff.repAll){ ME.rep=(ME.rep||0)+5; try{ await sb.from('jh_players').update({rep:ME.rep}).eq('auth_uid',ME.uid); }catch(e){} renderMe(); }
+  // 检查过期
+  if(activeEvent.expireAt) setTimeout(()=>{ if(activeEvent&&activeEvent.expireAt<=Date.now()) activeEvent=null; }, activeEvent.expireAt-Date.now());
+}
+// 内力恢复(大雪封山)
+setInterval(()=>{
+  if(activeEvent && activeEvent.eff.mpRegen && ME.mp<ME.mp_max){
+    ME.mp=clamp(ME.mp+5,0,ME.mp_max);
+    try{ sb.from('jh_players').update({mp:ME.mp}).eq('auth_uid',ME.uid); }catch(e){}
+    renderMe();
+  }
+},30000);
 
 // ---- 我的身份 ----
 let ME=null;   // {uid, name, sect, av, ...}
@@ -328,7 +474,16 @@ let msgChan=null, playerChan=null, heartbeatTimer=null;
 function enterHall(){
   renderMe();
   renderSectTabs();
+  // 水墨淡入背景
+  const inkBg=document.createElement('div'); inkBg.className='ink-bg go';
+  inkBg.style.background='radial-gradient(ellipse 60% 50% at 30% 20%,var(--ink),transparent 60%),radial-gradient(ellipse 50% 60% at 70% 80%,var(--ink),transparent 55%)';
+  document.body.appendChild(inkBg);
+  setTimeout(()=>inkBg.remove(),3000);
+  // 系统消息: 踏入江湖(带门派色)
+  try{ sb.from('jh_messages').insert({sect:curSect,user_id:'system',name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${SECTS[ME.sect].ic} ${ME.name} 踏入江湖`}); }catch(e){}
   goScene('hall');
+  checkAndTriggerEvent();
+  renderSectPower();
   switchSect(curSect);
   startHeartbeat();
   subscribePlayers();
@@ -353,18 +508,47 @@ const REALMS=[[0,'未入门'],[100,'初窥门径'],[400,'略有小成'],[1000,'�
 function titleOf(lv){ let t='无名小卒'; for(const[n,s]of TITLES){ if(lv>=n)t=s; } return t; }
 function realmOf(g){ let t='未入门'; for(const[n,s]of REALMS){ if(g>=n)t=s; } return t; }
 function realmNext(g){ for(const[n,s]of REALMS){ if(g<n) return [n,s]; } return null; }
+function renderYueli(){
+  const g=ME.gongli||0;
+  const nx=ylNextUnlock();
+  const bar=$('#yueliBar'); if(!bar) return;
+  if(nx){
+    const prev=UNLOCKS.filter(u=>g>=u.yl).pop();
+    const prevYl=prev?prev.yl:0;
+    const pct=clamp((g-prevYl)/(nx.yl-prevYl)*100,0,100);
+    bar.querySelector('i').style.width=pct+'%';
+    $('#yueliInfo').textContent=`阅历${g} · 下一解锁：${nx.nm}(需${nx.yl})`;
+  } else {
+    bar.querySelector('i').style.width='100%';
+    $('#yueliInfo').textContent=`阅历${g} · 已尽得江湖传承`;
+  }
+}
 function renderMe(){
   ME.title=titleOf(ME.lv);
   $('#meAv').textContent=ME.av; $('#meName').textContent=ME.name;
   $('#meTitle').textContent='· '+ME.title;
   $('#meMeta').textContent=`${SECTS[ME.sect].nm} · 第${ME.lv}重 · ${realmOf(ME.gongli||0)} · 威望${ME.rep} · ${ME.wins}胜${ME.losses}负 · 银${ME.silver||0}`;
+  renderYueli();
+  updateOpsLock();
+}
+function updateOpsLock(){
+  UNLOCKS.forEach(u=>{
+    const el=$('#op'+({ling:'Ling',sect:'Sect',bounty:'Bounty',teach:'Teach'}[u.id]));
+    if(!el) return;
+    const ok=ylUnlocked(u.id);
+    el.classList.toggle('locked',!ok);
+    const tag=el.querySelector('.lock-tag');
+    if(tag) tag.textContent=ok?'':('需'+u.yl);
+  });
 }
 function renderSectTabs(){
-  $('#sectTabs').innerHTML=SECT_ORDER.map(id=>`<div class="sect-tab ${id===curSect?'on':''}" data-sect="${id}">${SECTS[id].ic} ${SECTS[id].nm}</div>`).join('');
+  $('#sectTabs').innerHTML=SECT_ORDER.map(id=>{const on=id===curSect;return `<div class="sect-tab ${on?'on':''}" data-sect="${id}" style="--sect-color:${SECT_COLORS[id]}">${SECTS[id].ic} ${SECTS[id].nm}</div>`;}).join('');
   $('#sectTabs').querySelectorAll('.sect-tab').forEach(el=>el.onclick=()=>switchSect(el.dataset.sect));
 }
 async function switchSect(sect){
   curSect=sect; renderSectTabs();
+  // 检查事件过期
+  if(activeEvent && activeEvent.expireAt && Date.now()>activeEvent.expireAt) activeEvent=null;
   // 订阅该厅消息
   if(msgChan){ await sb.removeChannel(msgChan); msgChan=null; }
   $('#chat').innerHTML='<div class="tiny center" style="padding:20px">传音载入中…</div>';
@@ -387,14 +571,17 @@ async function loadMessages(sect){
 function appendMsg(m, noScroll){
   const chat=$('#chat');
   if(chat.querySelector('.msg.sys') && chat.children.length===1) chat.innerHTML='';
-  if(m.is_bot && (m.name==='店小二'||m.name==='说书人')) _lastAiMsgAt=Date.now();   // 供兜底判断: worker已应答则不重复
+  if(m.is_bot && (m.name==='店小二'||m.name==='说书人'||m.name==='说书人'||m.name==='江湖快报')) _lastAiMsgAt=Date.now();
   const isMe=m.user_id===ME.uid;
-  if(m.kind==='sys'){ const d=document.createElement('div'); d.className='msg sys'; d.innerHTML=`<span class="m-txt">${esc(m.text)}</span>`; chat.appendChild(d); }
+  // 查找发言者门派色
+  let sectColor='var(--c-sanren)';
+  if(m.sect && SECT_COLORS[m.sect]) sectColor=SECT_COLORS[m.sect];
+  if(m.kind==='sys'){ const d=document.createElement('div'); d.className='msg sys'+(m.name==='江湖快报'?' event':''); d.innerHTML=`<span class="m-txt">${esc(m.text)}</span>`; chat.appendChild(d); }
   else{
     const d=document.createElement('div'); d.className='msg'+(isMe?' me':'');
     d.innerHTML=`<div class="m-av">${esc(m.av||'🧑')}</div><div class="m-body">
       <div class="m-nm">${esc(m.name||'无名')}${m.is_bot?'<span class="bot">江湖客</span>':''}</div>
-      <div class="m-txt">${esc(m.text)}</div></div>`;
+      <div class="m-txt" style="border-left-color:${sectColor}">${esc(m.text)}</div></div>`;
     chat.appendChild(d);
   }
   if(!noScroll) scrollChat();
@@ -409,6 +596,10 @@ async function sendMsg(){
   appendMsg({...row}, false);   // 乐观上屏
   const { error }=await sb.from('jh_messages').insert(row);
   if(error){ console.warn(error); toast('传音失败'); }
+  // 阅历+1
+  ME.gongli=(ME.gongli||0)+1;
+  try{ await sb.from('jh_players').update({gongli:ME.gongli}).eq('auth_uid',ME.uid); }catch(e){}
+  renderMe();
   // 招呼店小二 → 求 AI 应答(worker在则真AI回, 不在则本地一句)
   if(/店小二|小二|掌柜/.test(text)){
     reqAI('xiaoer', `${ME.name}(${SECTS[ME.sect].nm})对店小二说：「${text}」。用店小二口吻回一句。`,
@@ -447,7 +638,8 @@ function startHeartbeat(){
   const beat=async()=>{ try{ await sb.from('jh_players').update({last_seen:new Date().toISOString()}).eq('auth_uid',ME.uid); }catch(e){}
     refreshHeroes(curSect); };
   beat();
-  heartbeatTimer=setInterval(beat, 15000);
+  renderSectPower();
+  heartbeatTimer=setInterval(()=>{ beat(); renderSectPower(); }, 15000);
 }
 // 订阅玩家变化(有人上线/威望变动 → 刷群侠)
 function subscribePlayers(){
@@ -610,7 +802,7 @@ window.JH_DUEL={
       challenger:ME.uid, challenger_name:ME.name, opponent:uid, opponent_name:nm,
       status:'pending', turn:0, state, log:[] }).select('id').single();
     if(error){ console.warn(error); toast('下战书失败'); return; }
-    DUEL={ id:data.id, role:'c', st:state, foeName:nm, foeAv:foe.av, submitted:false, foeIsBot:!!foe.is_bot };
+    DUEL={ id:data.id, role:'c', st:state, foeName:nm, foeAv:foe.av, foeSect:foe.sect, submitted:false, foeIsBot:!!foe.is_bot };
     showWaitAccept(nm, foe.is_bot);
     // 若对方是 bot, 直接自动应战
     if(foe.is_bot){ setTimeout(()=>{ sb.from('jh_duels').update({status:'active'}).eq('id',data.id); },800); }
@@ -629,7 +821,7 @@ function showWaitAccept(nm,isBot){
 async function acceptDuel(d){
   hideModal();
   const state=d.state;
-  DUEL={ id:d.id, role:'o', st:state, foeName:d.challenger_name, foeAv:(state.c&&state.c.av)||'🧑', submitted:false };
+  DUEL={ id:d.id, role:'o', st:state, foeName:d.challenger_name, foeAv:(state.c&&state.c.av)||'🧑', foeSect:d.challenger_sect, submitted:false };
   await sb.from('jh_duels').update({status:'active'}).eq('id',d.id);
   renderDuel();
   goScene('sub');
@@ -739,7 +931,12 @@ function showDuelEnd(win){
 async function recordDuelResult(win, fled){
   const me=await myPlayerRow();
   const patch={};
-  if(win){ patch.wins=(me.wins||0)+1; patch.rep=(me.rep||0)+rnd(5,12); ME.rep=patch.rep; ME.wins=patch.wins; }
+  if(win){ patch.wins=(me.wins||0)+1; patch.rep=(me.rep||0)+rnd(5,12); ME.rep=patch.rep; ME.wins=patch.wins;
+    // 切磋胜利阅历+5(月黑风高翻倍 / 宣战门派+50%)
+    let ylGain=eventActive('pvpExpDouble')?10:5;
+    // 检查对手门派是否处于宣战状态(简化: 无法获取对手门派时跳过)
+    if(DUEL && DUEL.foeSect && sectRelation(ME.sect,DUEL.foeSect)==='war') ylGain=Math.round(ylGain*1.5);
+    ME.gongli=(ME.gongli||0)+ylGain; patch.gongli=ME.gongli; }
   else{ patch.losses=(me.losses||0)+1; ME.losses=patch.losses; }
   await sb.from('jh_players').update(patch).eq('auth_uid',ME.uid);
   renderMe();
@@ -770,6 +967,24 @@ function bindOps(){
   $('#opElixir').onclick=openElixir;
   $('#opFeud').onclick=openFeud;
   $('#opMaster').onclick=openMaster;
+  $('#opLing').onclick=()=>{ if(ylUnlocked('ling')) publishLing(); };
+  $('#opSect').onclick=()=>{ if(ylUnlocked('sect')) openSectCreate(); };
+  $('#opBounty').onclick=()=>{ if(ylUnlocked('bounty')) openBounty(); };
+  $('#opTeach').onclick=()=>{ if(ylUnlocked('teach')) openTeachSkill(); };
+  // 门派令 + 外交 入口放在门派标签长按
+  const stabs=$('#sectTabs');
+  if(stabs && !stabs._diploBound){ stabs._diploBound=true;
+    let pressT=null;
+    stabs.addEventListener('touchstart',e=>{ if(e.target.classList.contains('sect-tab')){ pressT=setTimeout(()=>{ openDiplo(); },600); } });
+    stabs.addEventListener('touchend',()=>{ clearTimeout(pressT); });
+    stabs.addEventListener('touchmove',()=>{ clearTimeout(pressT); });
+    // 右键也触发
+    stabs.addEventListener('contextmenu',e=>{ if(e.target.classList.contains('sect-tab')){ e.preventDefault(); openDiplo(); } });
+  }
+  // 双击门派标签 → 门派令(声望第一才有效)
+  if(stabs && !stabs._lingBound){ stabs._lingBound=true;
+    stabs.addEventListener('dblclick',e=>{ if(e.target.classList.contains('sect-tab')){ openSectLing(); } });
+  }
 }
 // —— 打坐练功: 挂机涨功力+经验, 起身即止 ——
 let medTimer=null, medGain=0;
@@ -919,6 +1134,7 @@ async function openFeud(){
         <span style="flex:1">${txt} <span class="tiny" style="color:var(--dim)">${fmtAgo(f.created_at)}</span></span>
         ${canRevenge?`<button class="btn sm" data-revenge="${f.actor}" data-nm="${esc(f.actor_name)}">寻仇</button>`:''}</div>`;
     }).join(''):'<div class="tiny center" style="padding:20px;color:var(--dim)">江湖恩怨，尚是一张白纸。</div>'}
+    <button class="btn wide mt" onclick="hideModal();openDiplo()">🤝 门派外交</button>
     <button class="btn ghost wide mt" onclick="hideModal()">关闭</button></div>`);
   document.querySelectorAll('[data-revenge]').forEach(el=>el.onclick=()=>{ hideModal(); if(window.JH_DUEL) JH_DUEL.challenge(el.dataset.revenge, el.dataset.nm); });
 }
@@ -1007,7 +1223,14 @@ async function endNpc(win){
   const tpl=NB.tpl; ME.hp=Math.round(NB.me.hp); ME.mp=Math.round(NB.me.mp);
   let dropHtml='';
   if(win){
-    const r=tpl.reward||{}; ME.exp=(ME.exp||0)+(r.exp||10); ME.silver=(ME.silver||0)+(r.silver||5); ME.gongli=(ME.gongli||0)+(r.gongli||8);
+    // 金色光晕特效
+    const wrap=document.querySelector('.wrap'); if(wrap){ wrap.classList.add('golden-glow'); setTimeout(()=>wrap.classList.remove('golden-glow'),800); }
+    const r=tpl.reward||{};
+    // 事件效果: NPC奖励翻倍
+    let expGain=r.exp||10, silverGain=r.silver||5, gongliGain=r.gongli||8;
+    if(eventActive('npcDouble')||eventActive('rewardDouble')){ expGain*=2; silverGain*=2; gongliGain*=2; }
+    // 免费挑战(令牌事件): 不扣银两消耗
+    ME.exp=(ME.exp||0)+expGain; ME.silver=(ME.silver||0)+silverGain; ME.gongli=(ME.gongli||0)+gongliGain+3; // NPC胜利阅历+3
     let up=[]; while(ME.exp>=ME.lv*80){ ME.exp-=ME.lv*80; ME.lv++; ME.hp_max+=10; ME.mp_max+=6; up.push(ME.lv); }
     if(tpl.drop && !ME.skills.includes(tpl.drop) && Math.random()<(tpl.dropRate||0)){ ME.skills.push(tpl.drop); dropHtml=`<div class="mt" style="color:var(--gold);font-weight:700">✦ 习得 ${SKILLS[tpl.drop].nm}！</div>`; }
     unlockSectSkills();
@@ -1015,7 +1238,7 @@ async function endNpc(win){
     renderMe();
     openSub(`<div class="battle-end win"><div class="be-title">胜</div>
       <div class="narrate">你击败了 ${tpl.name}。</div>
-      <div class="mt">经验+${tpl.reward.exp} · 银两+${tpl.reward.silver} · 功力+${tpl.reward.gongli}</div>
+      <div class="mt">经验+${expGain} · 银两+${silverGain} · 功力+${gongliGain+3}</div>
       ${up.length?`<div class="tiny mt">修为精进至第${ME.lv}重</div>`:''}${dropHtml}
       <button class="btn primary wide mt2" onclick="backHall()">收势</button>
       <button class="btn ghost wide mt" id="npcAgain">再战</button></div>`);
@@ -1088,13 +1311,15 @@ const SHOP_BOOKS=[
   {sid:'dagou', price:40, tag:'丐帮棒法'},
 ];
 window.openShop=function(){
+  const halfPrice=eventActive('shopHalf');
   showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:4px">📖 秘籍书铺</div>
-    <div class="tiny" style="margin-bottom:10px">银两 <b style="color:var(--red)">${ME.silver||0}</b> · 购来的秘籍即刻入你武学</div>
+    <div class="tiny" style="margin-bottom:10px">银两 <b style="color:var(--red)">${ME.silver||0}</b> · 购来的秘籍即刻入你武学${halfPrice?' · <span style="color:var(--gold)">秘籍半价中！</span>':''}</div>
     ${SHOP_BOOKS.map(b=>{const s=SKILLS[b.sid];if(!s)return'';const owned=ME.skills.includes(b.sid);const lb=s.kind==='special'?'绝':SYS_LABEL[s.sys];const tag=s.kind==='special'?'sys-special':(SYS_CLS[s.sys]||'');
+      const price=halfPrice?Math.ceil(b.price/2):b.price;
       return `<div class="scroll-card" style="margin-bottom:7px;display:flex;align-items:center;gap:9px">
         <div style="flex:1"><div style="font-weight:700">${s.nm}<span class="mv-sys ${tag}" style="margin-left:5px">${lb}</span> <span class="tiny" style="color:var(--dim)">${b.tag}</span></div>
         <div class="tiny" style="color:var(--dim)">${s.desc}</div></div>
-        ${owned?'<span class="tiny" style="color:var(--jade)">已习</span>':`<button class="btn sm" data-book="${b.sid}" data-price="${b.price}">${b.price}两</button>`}</div>`;}).join('')}
+        ${owned?'<span class="tiny" style="color:var(--jade)">已习</span>':`<button class="btn sm" data-book="${b.sid}" data-price="${price}">${price}两</button>`}</div>`;}).join('')}
     <button class="btn ghost wide mt" onclick="hideModal()">离开</button></div>`);
   document.querySelectorAll('[data-book]').forEach(el=>el.onclick=async()=>{
     const sid=el.dataset.book, price=+el.dataset.price;
@@ -1105,11 +1330,184 @@ window.openShop=function(){
   });
 };
 
+// ============================================================
+//  门派势力条 + 新功能(江湖令/开宗/悬赏/传功/外交)
+// ============================================================
+async function renderSectPower(){
+  const since=new Date(Date.now()-45000).toISOString();
+  const { data }=await sb.from('jh_players').select('sect,rep').gte('last_seen',since);
+  const rows=data||[];
+  const stats={};
+  SECT_ORDER.forEach(s=>{ stats[s]={count:0,rep:0}; });
+  rows.forEach(r=>{ if(stats[r.sect]){ stats[r.sect].count++; stats[r.sect].rep+=(r.rep||0); } });
+  const total=Object.values(stats).reduce((s,x)=>s+x.count,0)||1;
+  const bar=$('#sectPower'); if(!bar) return;
+  bar.innerHTML=SECT_ORDER.map(id=>{const s=stats[id];const pct=s.count/total*100;return pct>0?`<div class="sp-seg" style="width:${pct}%;background:${SECT_COLORS[id]}" title="${SECTS[id].nm}:${s.count}人 威望${s.rep}">${pct>12?SECTS[id].nm:''}</div>`:'';}).join('');
+  const info=$('#sectPowerInfo');
+  info.innerHTML=SECT_ORDER.map(id=>{const s=stats[id];return `<span class="spi-item"><span class="spi-dot" style="background:${SECT_COLORS[id]}"></span>${SECTS[id].nm} ${s.count}人/${s.rep}望</span>`;}).join('');
+  // 门派令: 声望第一的门派可发江湖令
+  const topSect=SECT_ORDER.reduce((a,b)=>stats[a].rep>=stats[b].rep?a:b);
+  window._topSect=topSect;
+  // 渲染置顶江湖令(从 localStorage 读)
+  renderPinnedMsg();
+}
+function renderPinnedMsg(){
+  const box=$('#pinnedMsg'); if(!box) return;
+  try{
+    const pinned=JSON.parse(localStorage.getItem('jianghu_pinned_ling')||'null');
+    if(pinned && Date.now()<pinned.expire){
+      box.innerHTML=`<div class="pinned-msg"><span class="pm-icon">📜</span><div class="pm-body"><span class="pm-who">${esc(pinned.sect)} · ${esc(pinned.name)}</span><br>${esc(pinned.text)}</div></div>`;
+    } else { box.innerHTML=''; }
+  }catch(e){ box.innerHTML=''; }
+}
+
+// 发布江湖令(阅历10解锁)
+async function publishLing(){
+  if(!ylUnlocked('ling')){ toast('需阅历10方可发布江湖令'); return; }
+  const today=new Date().toDateString();
+  const LS_LING='jianghu_myling_'+today;
+  if(localStorage.getItem(LS_LING)){ toast('今日已发过江湖令'); return; }
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:8px">📜 发布江湖令</div>
+    <div class="tiny" style="margin-bottom:10px">全服可见公告，每人每天限1条</div>
+    <textarea class="ipt" id="lingText" rows="3" maxlength="80" style="resize:none;font-family:inherit" placeholder="书写江湖令…"></textarea>
+    <button class="btn primary wide mt2" id="lingSend">发布</button>
+    <button class="btn ghost wide mt" onclick="hideModal()">取消</button></div>`);
+  $('#lingSend').onclick=async()=>{
+    const text=$('#lingText').value.trim(); if(!text){ toast('请书写内容'); return; }
+    SECT_ORDER.forEach(async s=>{ try{ await sb.from('jh_messages').insert({sect:s,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`📜【江湖令】${ME.name}：${text}`}); }catch(e){} });
+    localStorage.setItem(LS_LING,'1');
+    hideModal(); toast('江湖令已传遍武林！');
+  };
+}
+
+// 开宗立派(阅历30解锁)
+async function openSectCreate(){
+  if(!ylUnlocked('sect')){ toast('需阅历30方可开宗立派'); return; }
+  const LS_GANG='jianghu_gang_'+ME.uid;
+  let gang=null; try{ gang=JSON.parse(localStorage.getItem(LS_GANG)||'null'); }catch(e){}
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:8px">🏯 开宗立派</div>
+    <div class="tiny" style="margin-bottom:10px">自定义帮派名，最多5人</div>
+    ${gang?`<div class="scroll-card" style="margin-bottom:10px"><div style="font-weight:700">🏯 ${esc(gang.name)}</div><div class="tiny" style="color:var(--dim)">成员：${(gang.members||[]).length}/5 · ${gang.members?gang.members.map(m=>m.name).join('、'):''}</div></div>
+      <button class="btn ghost wide" onclick="hideModal()">关闭</button>`:
+      `<input class="ipt" id="gangName" maxlength="10" placeholder="帮派名号（如：桃花岛）"><div class="tiny mt" style="color:var(--dim)">创立后将获得帮主身份</div>
+      <button class="btn primary wide mt2" id="gangCreate">创立</button>
+      <button class="btn ghost wide mt" onclick="hideModal()">取消</button>`}
+    </div>`);
+  const gc=$('#gangCreate'); if(gc) gc.onclick=()=>{
+    const nm=$('#gangName').value.trim(); if(!nm){ toast('请输入帮派名'); return; }
+    const g={name:nm, leader:ME.uid, members:[{uid:ME.uid, name:ME.name}] };
+    localStorage.setItem(LS_GANG, JSON.stringify(g));
+    hideModal(); toast(`创立帮派「${nm}」！`);
+    try{ sb.from('jh_messages').insert({sect:curSect,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${ME.name} 开宗立派，创立「${nm}」！`}); }catch(e){}
+  };
+}
+
+// 悬赏令(阅历50解锁)
+async function openBounty(){
+  if(!ylUnlocked('bounty')){ toast('需阅历50方可发布悬赏'); return; }
+  // 在线玩家列表
+  const since=new Date(Date.now()-45000).toISOString();
+  const { data }=await sb.from('jh_players').select('auth_uid,name,av').neq('auth_uid',ME.uid).gte('last_seen',since).limit(20);
+  const targets=data||[];
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:4px">💰 悬赏令</div>
+    <div class="tiny" style="margin-bottom:10px">指定目标，胜者得银两奖励。银两：<b style="color:var(--red)">${ME.silver||0}</b></div>
+    <div style="margin-bottom:8px"><label style="font-size:13px;color:var(--sub)">赏金</label><input class="ipt" id="bountyAmt" type="number" value="20" min="5" max="200" style="margin-top:4px"></div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:6px">目标</div>
+    ${targets.length?targets.map(t=>`<div class="scroll-card" style="margin-bottom:5px;display:flex;align-items:center;gap:8px;cursor:pointer" data-bt="${t.auth_uid}" data-bn="${esc(t.name)}"><span style="font-size:18px">${esc(t.av||'🧑')}</span><span style="flex:1">${esc(t.name)}</span><span class="btn sm">悬赏</span></div>`).join(''):'<div class="tiny center">江湖无人可悬赏</div>'}
+    <button class="btn ghost wide mt" onclick="hideModal()">取消</button></div>`);
+  document.querySelectorAll('[data-bt]').forEach(el=>el.onclick=async()=>{
+    const amt=+$('#bountyAmt').value||20;
+    if((ME.silver||0)<amt){ toast('银两不足'); return; }
+    const tid=el.dataset.bt, tnm=el.dataset.bn;
+    ME.silver-=amt;
+    await sb.from('jh_players').update({silver:ME.silver}).eq('auth_uid',ME.uid);
+    // 广播悬赏
+    SECT_ORDER.forEach(async s=>{ try{ await sb.from('jh_messages').insert({sect:s,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`💰【悬赏令】${ME.name} 悬赏 ${tnm}，赏银${amt}两！胜者可得。`}); }catch(e){} });
+    hideModal(); toast(`已悬赏 ${tnm}，赏银${amt}两`);
+    renderMe();
+  });
+}
+
+// 传授武学(阅历80解锁)
+async function openTeachSkill(){
+  if(!ylUnlocked('teach')){ toast('需阅历80方可传授武学'); return; }
+  // 在线玩家 + 我已习得的非绝学技能
+  const teachable=ME.skills.filter(sid=>{ const s=SKILLS[sid]; return s && s.kind!=='special' && s.tier<3; });
+  if(!teachable.length){ toast('你无可传授的武学'); return; }
+  const since=new Date(Date.now()-45000).toISOString();
+  const { data }=await sb.from('jh_players').select('auth_uid,name,av').neq('auth_uid',ME.uid).gte('last_seen',since).limit(20);
+  const targets=data||[];
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:4px">📖 传授武学</div>
+    <div class="tiny" style="margin-bottom:10px">传授非绝学技能，消耗50银两。银两：<b style="var(--red)">${ME.silver||0}</b></div>
+    ${targets.length?targets.map(t=>`<div class="scroll-card" style="margin-bottom:5px"><div style="font-weight:700;margin-bottom:4px">${esc(t.av||'🧑')} ${esc(t.name)}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${teachable.map(sid=>`<button class="btn sm" data-tk="${t.auth_uid}" data-tn="${esc(t.name)}" data-sk="${sid}">${SKILLS[sid].nm}</button>`).join('')}</div></div>`).join(''):'<div class="tiny center">江湖无人可传授</div>'}
+    <button class="btn ghost wide mt" onclick="hideModal()">取消</button></div>`);
+  document.querySelectorAll('[data-tk]').forEach(el=>el.onclick=async()=>{
+    const tid=el.dataset.tk, tnm=el.dataset.tn, sid=el.dataset.sk;
+    if((ME.silver||0)<50){ toast('银两不足(需50)'); return; }
+    // 检查对方是否已习得
+    const { data:t }=await sb.from('jh_players').select('skills,name').eq('auth_uid',tid).maybeSingle();
+    if(!t){ toast('此人已离去'); return; }
+    if((t.skills||[]).includes(sid)){ toast(`${t.name} 已习得此招`); return; }
+    ME.silver-=50;
+    await sb.from('jh_players').update({silver:ME.silver}).eq('auth_uid',ME.uid);
+    await sb.from('jh_players').update({skills:[...(t.skills||[]),sid]}).eq('auth_uid',tid);
+    renderMe();
+    try{ await sb.from('jh_messages').insert({sect:curSect,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${ME.name} 将「${SKILLS[sid].nm}」传授给 ${tnm}`}); }catch(e){}
+    hideModal(); toast(`已将「${SKILLS[sid].nm}」传给 ${tnm}`);
+  });
+}
+
+// 门派令(声望第一的门派成员可发)
+async function openSectLing(){
+  if(ME.sect!==window._topSect){ toast('仅声望第一的门派可发江湖令'); return; }
+  const today=new Date().toDateString();
+  const LS_SL='jianghu_sectling_'+ME.sect+'_'+today;
+  if(localStorage.getItem(LS_SL)){ toast('今日门派已发过江湖令'); return; }
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:8px">📜 门派令</div>
+    <div class="tiny" style="margin-bottom:10px">${SECTS[ME.sect].nm}声望居首，可发全服置顶令(持续2小时)</div>
+    <textarea class="ipt" id="slText" rows="3" maxlength="60" style="resize:none;font-family:inherit" placeholder="书写门派令…"></textarea>
+    <button class="btn primary wide mt2" id="slSend">发布</button>
+    <button class="btn ghost wide mt" onclick="hideModal()">取消</button></div>`);
+  $('#slSend').onclick=()=>{
+    const text=$('#slText').value.trim(); if(!text){ toast('请书写内容'); return; }
+    const pinned={sect:SECTS[ME.sect].nm, name:ME.name, text, expire:Date.now()+2*3600*1000};
+    localStorage.setItem('jianghu_pinned_ling', JSON.stringify(pinned));
+    SECT_ORDER.forEach(async s=>{ try{ await sb.from('jh_messages').insert({sect:s,user_id:ME.uid,name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`📜【${SECTS[ME.sect].nm}门派令】${ME.name}：${text}`}); }catch(e){} });
+    localStorage.setItem(LS_SL,'1');
+    hideModal(); renderPinnedMsg(); toast('门派令已置顶！');
+  };
+}
+
+// 门派外交(结盟/宣战)
+async function openDiplo(){
+  const d=loadDiplo();
+  showModal(`<div><div style="font-size:17px;font-weight:700;margin-bottom:8px">🤝 门派外交</div>
+    <div class="tiny" style="margin-bottom:10px">当前门派：${SECTS[ME.sect].nm}</div>
+    ${SECT_ORDER.filter(s=>s!==ME.sect).map(s=>{
+      const rel=sectRelation(ME.sect,s);
+      const pair=[ME.sect,s].sort().join('-');
+      const isAlly=(d.allies||[]).includes(pair), isWar=(d.wars||[]).includes(pair);
+      return `<div class="scroll-card" style="margin-bottom:6px;display:flex;align-items:center;gap:8px">
+        <span style="flex:1;font-weight:700">${SECTS[s].ic} ${SECTS[s].nm} <span class="gang-tag ${isAlly?'ally':''} ${isWar?'enemy':''}" style="${!isAlly&&!isWar?'display:none':''}">${isAlly?'盟':isWar?'敌':''}</span></span>
+        ${!isAlly?`<button class="btn sm" data-ally="${pair}">结盟</button>`:`<button class="btn sm" data-unally="${pair}">解盟</button>`}
+        ${!isWar?`<button class="btn sm" data-war="${pair}">宣战</button>`:`<button class="btn sm" data-unwar="${pair}">停战</button>`}
+      </div>`;
+    }).join('')}
+    <div class="tiny mt" style="color:var(--dim)">结盟：双方切磋不计负场，消息加友好标记<br>宣战：双方切磋胜利经验+50%，消息加对立标记</div>
+    <button class="btn ghost wide mt2" onclick="hideModal()">关闭</button></div>`);
+  const updateDiplo=()=>{ openDiplo(); };
+  document.querySelectorAll('[data-ally]').forEach(el=>el.onclick=()=>{ const dd=loadDiplo(); dd.allies=(dd.allies||[]); if(!dd.allies.includes(el.dataset.ally)) dd.allies.push(el.dataset.ally); dd.wars=(dd.wars||[]).filter(w=>w!==el.dataset.ally); saveDiplo(dd); updateDiplo(); });
+  document.querySelectorAll('[data-war]').forEach(el=>el.onclick=()=>{ const dd=loadDiplo(); dd.wars=(dd.wars||[]); if(!dd.wars.includes(el.dataset.war)) dd.wars.push(el.dataset.war); dd.allies=(dd.allies||[]).filter(a=>a!==el.dataset.war); saveDiplo(dd); updateDiplo(); });
+  document.querySelectorAll('[data-unally]').forEach(el=>el.onclick=()=>{ const dd=loadDiplo(); dd.allies=(dd.allies||[]).filter(a=>a!==el.dataset.unally); saveDiplo(dd); updateDiplo(); });
+  document.querySelectorAll('[data-unwar]').forEach(el=>el.onclick=()=>{ const dd=loadDiplo(); dd.wars=(dd.wars||[]).filter(w=>w!==el.dataset.unwar); saveDiplo(dd); updateDiplo(); });
+}
+
 // ============ 启动 ============
 initEnter();
 $('#rankBtn').onclick=()=>{ if(window.JH_RANK) JH_RANK(); else toast('威望榜即将开放…'); };
 // 页面关闭时尽力下线
-window.addEventListener('beforeunload',()=>{ try{ if(sb&&ME) sb.from('jh_players').update({last_seen:new Date(Date.now()-999999).toISOString()}).eq('auth_uid',ME.uid); }catch(e){} });
+window.addEventListener('beforeunload',()=>{ try{ if(sb&&ME){ sb.from('jh_messages').insert({sect:curSect,user_id:'system',name:ME.name,av:ME.av,is_bot:false,kind:'sys',text:`${ME.name} 飘然离去`}); sb.from('jh_players').update({last_seen:new Date(Date.now()-999999).toISOString()}).eq('auth_uid',ME.uid); } }catch(e){} });
 </script>
 </body>
 </html>
