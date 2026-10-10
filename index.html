@@ -220,12 +220,53 @@
   /* 系统事件广播样式 */
   .msg.sys.event .m-txt { color:var(--gold);font-weight:600;font-size:12.5px;border:none;background:linear-gradient(90deg,rgba(154,123,63,.08),transparent);padding:4px 8px;border-radius:4px }
 
+
+  /* 打字动态 */
+  .typing-indicator{font-size:12px;color:var(--dim);padding:3px 2px;height:21px;overflow:hidden;white-space:nowrap;opacity:0;transition:opacity .2s}
+  .typing-indicator.on{opacity:1}
+  .typing-indicator .ti-dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--dim);margin-left:2px;animation:tiBlink 1.2s infinite}
+  .typing-indicator .ti-dot:nth-child(2){animation-delay:.2s}
+  .typing-indicator .ti-dot:nth-child(3){animation-delay:.4s}
+  @keyframes tiBlink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
   /* 多终端兼容性基础 */
   .btn,.op,.sect-tab,.move,.hero-pav,.opt,.move:active,.btn:active { touch-action:manipulation; }
   #msgIpt { font-size:16px; } /* 防止 iOS Safari 自动缩放 */
 
-  /* 移动端小屏 (max-width: 400px) */
-  @media (max-width: 400px) {
+  /* iPhone 安全区适配 */
+  @supports (padding:max(0px)) {
+    .wrap { padding-left:max(16px,env(safe-area-inset-left)); padding-right:max(16px,env(safe-area-inset-right)); padding-bottom:max(30px,env(safe-area-inset-bottom)); }
+    #toast { bottom:max(60px,env(safe-area-inset-bottom)); }
+  }
+
+  /* 超小屏 (max-width: 360px) */
+  @media (max-width: 360px) {
+    .wrap { padding:8px 8px 20px; }
+    body { font-size:14px; }
+    .brush-title { font-size:26px;letter-spacing:4px; }
+    .ink-splash { font-size:50px; }
+    .ops-bar .op { font-size:11px;padding:4px 7px; }
+    .sect-tab { font-size:11.5px;padding:5px 9px; }
+    .chat { min-height:200px;max-height:46vh;padding:8px 10px; }
+    .m-txt { font-size:13.5px;padding:5px 8px; }
+    .m-av { width:28px;height:28px;font-size:14px; }
+    .top-bar { gap:5px; }
+    .me-av { width:36px;height:36px;font-size:20px; }
+    .me-name { font-size:15px; }
+    .me-meta { font-size:11px; }
+    .btn { padding:10px 14px;font-size:14px; }
+    .composer { gap:6px; }
+    .opt { padding:9px 10px; }
+    .opt .o-nm { font-size:14px; }
+    .move { padding:8px 9px; }
+    .move .mv-nm { font-size:13px; }
+    .cb-av { width:32px;height:32px;font-size:18px; }
+    .hero-pav { width:46px; }
+    .hero-pav .hp-av { width:36px;height:36px;font-size:18px; }
+  }
+
+  /* 小屏手机 (361px - 400px) */
+  @media (min-width: 361px) and (max-width: 400px) {
     .wrap { padding:10px 10px 24px; }
     .ops-bar .op { font-size:11.5px;padding:5px 8px; }
     .sect-tab { font-size:12px;padding:6px 10px; }
@@ -234,18 +275,69 @@
     .top-bar { gap:6px; }
   }
 
-  /* 平板 (min-width: 600px and max-width: 899px) */
-  @media (min-width: 600px) and (max-width: 899px) {
-    .wrap { max-width:640px; }
-    .chat { min-height:320px; }
+  /* 大屏手机 (401px - 599px) */
+  @media (min-width: 401px) and (max-width: 599px) {
+    .wrap { padding:14px 14px 26px; }
+    .chat { min-height:280px;max-height:50vh; }
   }
 
-  /* PC 宽屏 (min-width: 900px) */
-  @media (min-width: 900px) {
+  /* 平板竖屏 (600px - 899px) */
+  @media (min-width: 600px) and (max-width: 899px) {
+    .wrap { max-width:640px;padding:20px 20px 30px; }
+    .chat { min-height:320px;max-height:480px; }
+    .brush-title { font-size:32px; }
+    .ink-splash { font-size:64px; }
+    body { font-size:16px; }
+    .btn { padding:12px 20px;font-size:16px; }
+    .m-txt { font-size:15px; }
+    .hero-pav { width:56px; }
+    .hero-pav .hp-av { width:42px;height:42px;font-size:22px; }
+  }
+
+  /* 平板横屏 / 小桌面 (900px - 1199px) */
+  @media (min-width: 900px) and (max-width: 1199px) {
     body { background:linear-gradient(135deg,#e0d4b8 0%,#d4c8a8 100%); }
-    .wrap { box-shadow:0 0 40px rgba(60,45,30,.12); }
+    .wrap { max-width:720px;box-shadow:0 0 40px rgba(60,45,30,.12);border-radius:0 0 8px 8px; }
     .chat { min-height:420px;max-height:520px; }
     .ops-bar { flex-wrap:wrap; }
+    body { font-size:16px; }
+    .brush-title { font-size:34px; }
+  }
+
+  /* PC 宽屏 (1200px+) */
+  @media (min-width: 1200px) {
+    body { background:linear-gradient(135deg,#e0d4b8 0%,#d4c8a8 50%,#c8bca0 100%); }
+    .wrap { max-width:760px;box-shadow:0 0 50px rgba(60,45,30,.15);border-radius:8px;margin-top:20px;margin-bottom:20px;min-height:calc(100dvh - 40px); }
+    .chat { min-height:440px;max-height:540px; }
+    .ops-bar { flex-wrap:wrap; }
+    body { font-size:16px; }
+    .brush-title { font-size:36px; }
+    .ink-splash { font-size:68px; }
+    .btn:hover { transform:translateY(-2px); }
+    .hero-pav:hover .hp-av { transform:translateY(-3px); }
+  }
+
+  /* 横屏手机适配 */
+  @media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+    .wrap { padding:8px 12px 14px; }
+    #enter { padding-top:3vh; }
+    #enter .poem { margin:8px 0 16px; }
+    .ink-splash { font-size:40px;margin-bottom:2px; }
+    .brush-title { font-size:24px; }
+    .chat { min-height:120px;max-height:30vh; }
+    .top-bar { margin-bottom:6px; }
+    .heroes { margin-bottom:2px; }
+  }
+
+  /* 暗色模式适配(保留古卷调性) */
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#2a241e; --paper2:#221d17; --paper3:#332b22; --ink:#e8ddc7; --sub:#98876a; --dim:#7a6a50; }
+    body::before { opacity:.35; }
+    body::after { opacity:.08; }
+    input.ipt { background:var(--paper3); }
+    .btn { background:linear-gradient(180deg,var(--paper3),var(--paper2)); }
+    .opt { background:var(--paper3); }
+    .sect-tab { background:var(--paper3); }
   }
 
 </style>
@@ -260,7 +352,7 @@
     <div class="sub">众 侠 云 集 · 传 音 论 剑</div>
     <div class="poem">此地非一人之江湖。<br>与四方豪杰同处一世，传音、结派、切磋。</div>
     <div id="enterForm" style="text-align:left;max-width:420px;margin:0 auto">
-      <div class="field"><div class="field-label">名号</div><input class="ipt" id="nameIpt" maxlength="8" placeholder="报上江湖名号"></div>
+      <div class="field"><div class="field-label">名号</div><div style="display:flex;gap:8px"><input class="ipt" id="nameIpt" maxlength="8" placeholder="报上江湖名号" style="flex:1"><button class="btn" id="diceBtn" type="button" style="padding:11px 14px;font-size:20px;flex-shrink:0" title="随机名号">🎲</button></div></div>
       <div class="field"><div class="field-label">立身之门</div><div class="opt-grid" id="sectGrid"></div></div>
       <div class="field"><div class="field-label">资质</div><div class="opt-grid" id="talentGrid"></div></div>
     </div>
@@ -301,6 +393,7 @@
     <div class="tiny" style="margin:2px 0 4px;color:var(--sub)">在此地的群侠(点击可下战书)：</div>
     <div class="heroes" id="heroes"></div>
     <div class="chat" id="chat"></div>
+    <div class="typing-indicator" id="typingIndicator"></div>
     <div class="composer">
       <input class="ipt" id="msgIpt" maxlength="120" placeholder="传音入密…">
       <button class="btn primary" id="sendBtn">传音</button>
@@ -318,6 +411,8 @@
 const $=s=>document.querySelector(s);
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rand=a=>a[Math.floor(Math.random()*a.length)];
+const WUXIA_NAMES=['令狐冲','东方不败','杨过','小龙女','郭靖','黄蓉','张无忌','赵敏','韦小宝','段誉','乔峰','虚竹','独孤求败','风清扬','任我行','岳不群'];
+function rollName(){ return WUXIA_NAMES[Math.floor(Math.random()*WUXIA_NAMES.length)]; }
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let toastT=null;
@@ -433,6 +528,9 @@ function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS)||'null'); 
 let sel={sect:null, talent:null};
 function initEnter(){
   const saved=loadLocal();
+  // 自动随机填入武侠名号
+  if(!saved || !saved.name){ $('#nameIpt').value=rollName(); }
+  $('#diceBtn').onclick=()=>{ const cur=$('#nameIpt').value; let n; do{ n=rollName(); }while(n===cur&&WUXIA_NAMES.length>1); $('#nameIpt').value=n; $('#nameIpt').focus(); };
   $('#sectGrid').innerHTML=SECT_ORDER.map(id=>{const s=SECTS[id];return `<div class="opt" data-sect="${id}"><div class="o-nm">${s.ic} ${s.nm}</div><div class="o-tag">${s.tag}</div></div>`;}).join('');
   $('#talentGrid').innerHTML=TALENTS.map(t=>`<div class="opt" data-talent="${t.id}"><div class="o-nm">${t.nm}</div><div class="o-tag">${t.tag}</div></div>`).join('');
   $('#sectGrid').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{sel.sect=el.dataset.sect;$('#sectGrid').querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===el));});
@@ -588,6 +686,7 @@ async function switchSect(sect){
       appendMsg(p.new);
     }).subscribe(st=>{ $('#connDot').classList.toggle('live', st==='SUBSCRIBED'); });
   startXiaoer();   // 店小二常驻本厅, 冷场活跃
+  startTypingChannel();   // 启动打字动态广播
 }
 async function loadMessages(sect){
   const { data }=await sb.from('jh_messages').select('*').eq('sect',sect).order('id',{ascending:false}).limit(40);
@@ -649,6 +748,9 @@ function scrollChat(){ const c=$('#chat'); c.scrollTop=c.scrollHeight; }
 async function sendMsg(){
   const ipt=$('#msgIpt'); const text=ipt.value.trim(); if(!text) return;
   ipt.value='';
+  // 停止打字广播
+  if(typingChan){ try{ typingChan.send({type:'broadcast', event:'stop_typing', payload:{uid:ME.uid, name:ME.name}}); }catch(e){} }
+  clearTimeout(typingTimer);
   const row={ sect:curSect, user_id:ME.uid, name:ME.name, av:ME.av, is_bot:false, kind:'msg', text };
   const optRow={...row, _optId:`_opt_${Date.now()}_${Math.random()}`};
   appendMsg(optRow, false);   // 乐观上屏
@@ -658,14 +760,21 @@ async function sendMsg(){
   ME.gongli=(ME.gongli||0)+1;
   try{ await sb.from('jh_players').update({gongli:ME.gongli}).eq('auth_uid',ME.uid); }catch(e){}
   renderMe();
-  // 招呼店小二 → 求 AI 应答(worker在则真AI回, 不在则本地一句)
-  if(/店小二|小二|掌柜/.test(text)){
-    reqAI('xiaoer', `${ME.name}(${SECTS[ME.sect].nm})对店小二说：「${text}」。用店小二口吻回一句。`,
+  // 店小二 AI 应答：关键词必回 + 随机概率响应任意消息(传最近上下文)
+  const mentionsBot=/店小二|小二|掌柜|说书/.test(text);
+  if(mentionsBot || Math.random()<0.25){
+    const targetKind=mentionsBot&&!/说书/.test(text)?'xiaoer':'xiaoer';
+    const recentCtx=getRecentContext();
+    const prompt = mentionsBot
+      ? `${ME.name}(${SECTS[ME.sect].nm})说：「${text}」。根据上下文回应${ME.name}，用店小二口吻回一句简短的话(30字以内)。`
+      : `有人说了：「${text}」。作为店小二，结合上下文自然地接一句话(30字以内)。`;
+    reqAI(targetKind, prompt,
       ()=>appendMsg({sect:curSect,user_id:'xiaoer',name:'店小二',av:'🏮',is_bot:true,kind:'msg',text:rand(XIAOER_LINES)},false));
   }
 }
 $('#sendBtn').onclick=sendMsg;
 $('#msgIpt').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendMsg(); } });
+$('#msgIpt').addEventListener('input', onTypingInput);
 
 // 在线群侠(近40秒有心跳的玩家)
 async function refreshHeroes(sect){
@@ -1329,10 +1438,25 @@ const XIAOER_LINES=[
   '风紧，扯呼——啊不，我是说，天要变了。',
 ];
 let xiaoerTimer=null;
+// 获取最近聊天上下文(传给 AI 让其真正回应对话)
+function getRecentContext(){
+  const chat=$('#chat'); if(!chat) return [];
+  const msgs=chat.querySelectorAll('.msg:not(.sys)');
+  const recent=[];
+  msgs.forEach(m=>{
+    const nmEl=m.querySelector('.m-nm'); const txtEl=m.querySelector('.m-txt');
+    if(!txtEl) return;
+    let nm=nmEl?nmEl.textContent.replace('江湖客','').trim():'';
+    const txt=txtEl.textContent.trim();
+    if(txt) recent.push({name:nm, text:txt});
+  });
+  return recent.slice(-8);
+}
+
 // 求 AI 生成(worker在则真AI, 不在则本地文案兜底)。job结果由worker发进厅, 前端realtime收到。
 async function reqAI(kind, prompt, fallbackFn){
   try{
-    const context={sect:SECTS[curSect]?.nm||''};
+    const context={sect:SECTS[curSect]?.nm||'', messages:getRecentContext()};
     const p=sb.functions.invoke('jh-ai-chat',{body:{kind,prompt,context}});
     const timeout=new Promise(r=>setTimeout(()=>r(null),5000));
     const res=await Promise.race([p,timeout]);
@@ -1347,6 +1471,48 @@ async function reqAI(kind, prompt, fallbackFn){
 }
 let _lastAiMsgAt=0;
 function _aiRespondedSince(t){ return _lastAiMsgAt>t; }
+
+// ---- 打字动态 ----
+let typingChan=null;
+let typingUsers={};
+let typingTimer=null;
+function startTypingChannel(){
+  if(typingChan){ try{ sb.removeChannel(typingChan); }catch(e){} typingChan=null; }
+  typingUsers={};
+  typingChan=sb.channel('jh-typing:'+curSect)
+    .on('broadcast',{event:'typing'}, ({payload})=>{
+      if(!payload||payload.uid===ME.uid) return;
+      typingUsers[payload.uid]={name:payload.name, ts:Date.now()};
+      renderTyping();
+    })
+    .on('broadcast',{event:'stop_typing'}, ({payload})=>{
+      if(!payload||payload.uid===ME.uid) return;
+      delete typingUsers[payload.uid];
+      renderTyping();
+    })
+    .subscribe();
+}
+function renderTyping(){
+  const el=$('#typingIndicator'); if(!el) return;
+  const now=Date.now();
+  Object.keys(typingUsers).forEach(uid=>{ if(now-typingUsers[uid].ts>4000) delete typingUsers[uid]; });
+  const active=Object.values(typingUsers);
+  if(active.length===0){ el.classList.remove('on'); el.innerHTML=''; return; }
+  const names=active.map(t=>t.name).join('、');
+  el.innerHTML=esc(names)+' 正在输入<span class="ti-dot"></span><span class="ti-dot"></span><span class="ti-dot"></span>';
+  el.classList.add('on');
+}
+function onTypingInput(){
+  if(!typingChan) return;
+  try{ typingChan.send({type:'broadcast', event:'typing', payload:{uid:ME.uid, name:ME.name}}); }catch(e){}
+  clearTimeout(typingTimer);
+  typingTimer=setTimeout(()=>{
+    try{ typingChan.send({type:'broadcast', event:'stop_typing', payload:{uid:ME.uid, name:ME.name}}); }catch(e){}
+  }, 2000);
+}
+// 定期清理过期的打字状态
+setInterval(()=>{ let changed=false; const now=Date.now(); Object.keys(typingUsers).forEach(uid=>{ if(now-typingUsers[uid].ts>4000){ delete typingUsers[uid]; changed=true; } }); if(changed) renderTyping(); }, 1000);
+
 function startXiaoer(){
   clearInterval(xiaoerTimer);
   const say=()=>{
