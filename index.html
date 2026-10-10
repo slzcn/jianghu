@@ -573,13 +573,13 @@ async function enterJianghu(name, sect, talent){
   // 先看是否已有存档(同一 auth uid 再进来 → 加载, 不重置)
   const { data:exist }=await sb.from('jh_players').select('*').eq('auth_uid',uid).maybeSingle();
   if(exist && exist.lv){
-    ME={ uid, name:exist.name, sect:exist.sect, talent, av:exist.av, lv:exist.lv, rep:exist.rep||0,
+    ME={ uid, name:exist.name, sect:exist.sect, talent, av:NAME_AVATARS[name]||exist.av||'🧑', lv:exist.lv, rep:exist.rep||0,
       wins:exist.wins||0, losses:exist.losses||0, stats:exist.stats||stats, skills:exist.skills||['pingzhang','roujin','shenxing','yungong','gedang'],
       hp:exist.hp, hp_max:exist.hp_max, mp:exist.mp, mp_max:exist.mp_max,
       exp:exist.exp||0, gongli:exist.gongli||0, silver:exist.silver||50, title:exist.title||'',
       master:exist.master, sect_rank:exist.sect_rank||0 };
     // 若这次改了名号/门派, 更新
-    if(name!==exist.name || sect!==exist.sect){ ME.name=name; ME.sect=sect; await sb.from('jh_players').update({name,sect,last_seen:new Date().toISOString()}).eq('auth_uid',uid); }
+    if(name!==exist.name || sect!==exist.sect || (NAME_AVATARS[name]||'🧑')!==exist.av){ ME.name=name; ME.sect=sect; ME.av=NAME_AVATARS[name]||exist.av||'🧑'; await sb.from('jh_players').update({name,sect,av:ME.av,last_seen:new Date().toISOString()}).eq('auth_uid',uid); }
     else await sb.from('jh_players').update({last_seen:new Date().toISOString()}).eq('auth_uid',uid);
   } else {
     // 初始武学 = 通用基础 + 本门派入门招(tier1)
@@ -702,7 +702,7 @@ async function loadMessages(sect){
 function appendMsg(m, noScroll){
   const chat=$('#chat');
   if(chat.querySelector('.msg.sys') && chat.children.length===1) chat.innerHTML='';
-  if(m.is_bot && (m.name==='店小二'||m.name==='说书人'||m.name==='说书人'||m.name==='江湖快报')) _lastAiMsgAt=Date.now();
+  if(m.is_bot && (m.name==='店小二'||m.name==='说书人'||m.name==='江湖快报')) _lastAiMsgAt=Date.now();
   const isMe=m.user_id===ME.uid;
   // 查找发言者门派色
   let sectColor='var(--c-sanren)';
