@@ -1331,15 +1331,19 @@ const XIAOER_LINES=[
 let xiaoerTimer=null;
 // 求 AI 生成(worker在则真AI, 不在则本地文案兜底)。job结果由worker发进厅, 前端realtime收到。
 async function reqAI(kind, prompt, fallbackFn){
-  try{ await sb.from('jh_ai_jobs').insert({kind, sect:curSect, requester:ME.uid, prompt}); }
-  catch(e){ /* 建job失败 → 兜底 */ }
-  // 3.5秒内没等到worker结果(worker没开) → 本地兜底发一句(前端本地渲染, 不入库避免和worker重复)
-  const before=Date.now();
-  setTimeout(()=>{
-    // 若这几秒内厅里已出现 说书人/店小二 的新消息, 认为worker处理了, 不兜底
-    const recent=[...document.querySelectorAll('#chat .m-nm')].slice(-4).some(e=>/店小二|说书人/.test(e.textContent) && true);
-    if(fallbackFn && !_aiRespondedSince(before)) fallbackFn();
-  }, 3800);
+  try{
+    const context={sect:SECTS[curSect]?.nm||''};
+    const p=sb.functions.invoke('jh-ai-chat',{body:{kind,prompt,context}});
+    const timeout=new Promise(r=>setTimeout(()=>r(null),5000));
+    const res=await Promise.race([p,timeout]);
+    const text=res?.data?.text;
+    if(text){
+      const isXiaoer=kind==='xiaoer';
+      appendMsg({sect:curSect,user_id:isXiaoer?'xiaoer':'shuoshu',name:isXiaoer?'店小二':'说书人',av:isXiaoer?'🏮':'🎭',is_bot:true,kind:'msg',text},false);
+      return;
+    }
+  }catch(e){}
+  if(fallbackFn)fallbackFn();
 }
 let _lastAiMsgAt=0;
 function _aiRespondedSince(t){ return _lastAiMsgAt>t; }
