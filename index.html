@@ -1458,6 +1458,11 @@ function getRecentContext(){
 
 // 求 AI 生成(worker在则真AI, 不在则本地文案兜底)。job结果由worker发进厅, 前端realtime收到。
 async function reqAI(kind, prompt, fallbackFn){
+  const isXiaoer=kind==='xiaoer';
+  const aiName=isXiaoer?'店小二':'说书人';
+  // 显示 AI 打字提示，让用户看到"正在输入"
+  typingUsers['ai_bot']={name:aiName, ts:Date.now()};
+  renderTyping();
   try{
     const context={sect:SECTS[curSect]?.nm||'', messages:getRecentContext()};
     const p=sb.functions.invoke('jh-ai-chat',{body:{kind,prompt,context}});
@@ -1465,11 +1470,14 @@ async function reqAI(kind, prompt, fallbackFn){
     const res=await Promise.race([p,timeout]);
     const text=res?.data?.text;
     if(text){
-      const isXiaoer=kind==='xiaoer';
-      appendMsg({sect:curSect,user_id:isXiaoer?'xiaoer':'shuoshu',name:isXiaoer?'店小二':'说书人',av:isXiaoer?'🍵':'🎭',is_bot:true,kind:'msg',text},false);
+      delete typingUsers['ai_bot'];
+      renderTyping();
+      appendMsg({sect:curSect,user_id:isXiaoer?'xiaoer':'shuoshu',name:aiName,av:isXiaoer?'🍵':'🎭',is_bot:true,kind:'msg',text},false);
       return;
     }
   }catch(e){}
+  delete typingUsers['ai_bot'];
+  renderTyping();
   if(fallbackFn)fallbackFn();
 }
 let _lastAiMsgAt=0;
@@ -1482,14 +1490,14 @@ let typingTimer=null;
 function startTypingChannel(){
   if(typingChan){ try{ sb.removeChannel(typingChan); }catch(e){} typingChan=null; }
   typingUsers={};
-  typingChan=sb.channel('jh-typing:'+curSect)
+  typingChan=sb.channel('jh-typing:'+curSect,{config:{broadcast:{self:true}}})
     .on('broadcast',{event:'typing'}, ({payload})=>{
-      if(!payload||payload.uid===ME.uid) return;
+      if(!payload) return;
       typingUsers[payload.uid]={name:payload.name, ts:Date.now()};
       renderTyping();
     })
     .on('broadcast',{event:'stop_typing'}, ({payload})=>{
-      if(!payload||payload.uid===ME.uid) return;
+      if(!payload) return;
       delete typingUsers[payload.uid];
       renderTyping();
     })
